@@ -13,14 +13,11 @@ OBJ				= build\obj
 BIN				= bin
 
 CC				= cl /nologo
-FLAGS			= /Wall /WX /wd5045 /wd4255 /wd4668
-LIBS			= advapi32.lib user32.lib Shell32.lib
+LIBS			= advapi32.lib user32.lib
 
 OBJS			= $(OBJ)\main.obj			\
 				  $(OBJ)\hook.obj			\
-				  $(OBJ)\key.obj			\
-				  $(OBJ)\service.obj		\
-				  $(OBJ)\keyboardstate.obj	\
+				  $(OBJ)\actions.obj		\
 				  $(OBJ)\resource.res
 
 # ───────────────────────────────────────────────────────────── #
@@ -34,27 +31,19 @@ AutoTrim: $(BIN)\$(NAME).exe
 
 $(BIN)\$(NAME).exe: $(OBJS)
 	@if not exist $(BIN) mkdir $(BIN)
-	@$(CC) -Iinc $(FLAGS) /Fe$(BIN)\$(NAME).exe $(OBJS) $(LIBS)
+	@$(CC) -Iinc /Fe$(BIN)\$(NAME).exe $(OBJS) $(LIBS)
 
 $(OBJ)\main.obj: $(SRC)\main.c
 	@if not exist $(OBJ) mkdir $(OBJ)
-	@$(CC) -Iinc $(FLAGS) /c /Fo$@ $**
+	@$(CC) -Iinc /c /Fo$@ $**
 
 $(OBJ)\hook.obj: $(SRC)\hook.c
 	@if not exist $(OBJ) mkdir $(OBJ)
-	@$(CC) -Iinc $(FLAGS) /c /Fo$@ $**
+	@$(CC) -Iinc /c /Fo$@ $**
 
-$(OBJ)\key.obj: $(SRC)\key.c
+$(OBJ)\actions.obj: $(SRC)\actions.c
 	@if not exist $(OBJ) mkdir $(OBJ)
-	@$(CC) -Iinc $(FLAGS) /c /Fo$@ $**
-
-$(OBJ)\service.obj: $(SRC)\service.c
-	@if not exist $(OBJ) mkdir $(OBJ)
-	@$(CC) -Iinc $(FLAGS) /c /Fo$@ $**
-
-$(OBJ)\keyboardstate.obj: $(SRC)\keyboardstate.c
-	@if not exist $(OBJ) mkdir $(OBJ)
-	@$(CC) -Iinc $(FLAGS) /c /Fo$@ $**
+	@$(CC) -Iinc /c /Fo$@ $**
 
 $(OBJ)\resource.res: res\resource.rc
 	@if not exist $(OBJ) mkdir $(OBJ)

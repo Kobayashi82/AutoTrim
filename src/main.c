@@ -1,14 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   main.c                                             :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: vzurera- <vzurera-@student.42malaga.com    +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/08 13:00:34 by vzurera-          #+#    #+#             */
-/*   Updated: 2025/05/21 16:17:17 by vzurera-         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
 
 #pragma region "Includes"
 
@@ -18,8 +7,8 @@
 
 #pragma region "Is Admin"
 
-	BOOL IsAdmin(void) {
-		BOOL isAdmin = FALSE;
+	static bool IsAdmin() {
+		bool isAdmin = FALSE;
 		HANDLE hToken = NULL;
 
 		if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
@@ -37,31 +26,53 @@
 
 #pragma region "Main"
 
-	int main(void) {
-		// Check for administrator privileges
-		if (!IsAdmin()) return (printf("\nAdministrator privileges are required\n"), 1);
-		
-		// Activate the hook
-		if (!ActivateHook()) return (1);
-		
-		// Main loop to keep the hook active
-		MSG msg;
-		HANDLE hEvent = CreateEvent(NULL, TRUE, FALSE, "Global\\WinkeyTerminateEvent");
-		
-		while(TRUE) {
-			// Process messages (including hook events)
-			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-				if (msg.message == WM_QUIT) break;
-				TranslateMessage(&msg);
+	int main() {
+		AllocConsole();
+		freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
+		freopen_s((FILE**)stderr, "CONOUT$", "w", stderr);
+		freopen_s((FILE**)stdin, "CONIN$", "r", stdin);
+
+		printf("==============================\n");
+		printf("           AutoTrim           \n");
+		printf("==============================\n");
+		printf("\n");
+
+		if (!IsAdmin()) {
+			printf("Por favor, ejecuta el programa como administrador\n");
+			printf("\nPresiona Enter para salir...");
+			getchar();
+			return (1);
+		}
+
+		if (!InstallKeyboardHook()) {
+			printf("No se pudo inicializar el hook del teclado\n");
+			printf("\nPresiona Enter para salir...");
+			getchar();
+			return (1);
+		}
+
+		printf("Combinaciones disponibles:\n");
+		printf("  Ctrl+1 - Accion 1\n");
+		printf("  Ctrl+2 - Accion 2\n");
+		printf("  Ctrl+3 - Accion 3\n");
+		printf("  Ctrl+4 - Accion 4\n");
+		printf("  Ctrl+5 - Accion 5\n");
+		printf("  Ctrl+Q - Salir del programa\n");
+		printf("=================================================\n");
+
+		bool g_running = true;
+		while (g_running) {
+			MSG msg;
+			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+				if (msg.message == WM_QUIT) g_running = false;
 				DispatchMessage(&msg);
 			}
 
-			if (WaitForSingleObject(hEvent, 10) == WAIT_OBJECT_0) break;
 			Sleep(10);
 		}
 
-		CloseHandle(hEvent);
-		DeactivateHook();
+		UninstallKeyboardHook();
+
 		return (0);
 	}
 
