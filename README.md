@@ -1,6 +1,6 @@
 <div align="center">
 
-![Flight Simulation](https://img.shields.io/badge/Flight-Simulation-blue?style=for-the-badge)
+![MSFS 2020](https://img.shields.io/badge/MSFS-2020-blue?style=for-the-badge)
 ![PID Controller](https://img.shields.io/badge/PID-Controller-green?style=for-the-badge)
 ![Arduino Integration](https://img.shields.io/badge/Arduino-Integration-teal?style=for-the-badge)
 ![C Language](https://img.shields.io/badge/Language-C-red?style=for-the-badge)
@@ -506,8 +506,8 @@ Este proyecto está licenciado bajo la WTFPL – [Do What the Fuck You Want to P
 
 <div align="center">
 
-**🛩️ Desarrollado para la comunidad de simulación de vuelo 🛩️**
+**🛩️ Desarrollado como proyecto personal 🛩️**
 
-*"Because pilots shouldn't fight with trim"*
+*"Even virtual pilots deserve a break"*
 
 </div>
