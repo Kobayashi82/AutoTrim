@@ -56,24 +56,24 @@ nmake
 ## 🖥️ Requisitos del Sistema
 
 ### Software
-- **Sistema Operativo**: Windows 10/11 (64-bit)
-- **Microsoft Flight Simulator 2020**: Cualquier versión
-- **FSUIPC7**: Instalado y configurado
-- **Drivers Arduino**: Para comunicación USB serie
+- **Windows 10/11 (64-bit)**
+- **Microsoft Flight Simulator 2020**
+- **FSUIPC7**
+- **Drivers Arduino**
 
 ### Hardware
-- **Honeycomb Bravo Throttle Quadrant**: Con rueda de trim
-- **Arduino**: Uno, Mega o compatible
-- **Motor Paso a Paso o Servo**: Para control físico de la rueda
-- **Driver de Motor**: L298N, TB6612 o similar
-- **Fuente de Alimentación**: Adecuada para el motor
+- **Honeycomb Bravo Throttle Quadrant**
+- **Arduino**
+- **Motor Paso a Paso o Servo**
+- **Driver de Motor**
+- **Fuente de Alimentación**
 
 ## 🎮 Uso del Programa
 
 ### Inicio Básico
 
 ```bash
-# Ejecutar AutoTrim
+# Ejecutar AutoTrim como administrador
 AutoTrim.exe
 
 # El programa se conectará automáticamente a:
@@ -492,7 +492,6 @@ R: No para uso básico. Solo necesitas cargar el sketch en Arduino y ajustar con
 
 ## 🔄 Actualizaciones Futuras
 
-- [ ] Soporte para trim de dirección y alabeo
 - [ ] Interfaz gráfica de configuración
 - [ ] Perfiles de configuración por avión
 - [ ] Integración con SimConnect (alternativa a FSUIPC)
@@ -501,7 +500,7 @@ R: No para uso básico. Solo necesitas cargar el sketch en Arduino y ajustar con
 
 ## 📄 Licencia
 
-Este proyecto está licenciado bajo la MIT License.
+Este proyecto está licenciado bajo la WTFPL – [Do What the Fuck You Want to Public License](http://www.wtfpl.net/about/).
 
 ---
 
