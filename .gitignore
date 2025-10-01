@@ -1,0 +1,13 @@
+*
+!.vscode
+!.vscode/**
+!doc
+!doc/**
+!src
+!src/**
+!inc
+!inc/**
+!Makefile
+!build.bat
+!README.md
+!.gitignore
