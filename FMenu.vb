@@ -3,28 +3,23 @@
 #Region " Variables "
 
     Private Version As String = "1.0"
-    Dim Mode As String
-    Dim Loaded As Boolean
 
-    ' Configuración
     Private Config As ConfigManager
+    Private WithEvents FSUIPCMgr As FSUIPC
+    Private WithEvents Hook As New Hook()
 
-    Dim FSUIPC_TConnect As New Timer With {.Enabled = True, .Interval = 50}
-    Dim FSUIPC_Main As New Timer With {.Enabled = False, .Interval = 50}
+    Dim PIDController1 As PIDController
+    Dim PIDController2 As PIDController2
 
-    Dim Trim As New FSUIPC.Offset(Of Short)(&HBC2)
-    Dim TrimSet As New FSUIPC.Offset(Of Short)(&HBC0)
-    Dim FSUIPC_VerticalSpeed As New FSUIPC.Offset(Of Integer)(&H2C8)
+    Private WithEvents PIDTimer As New Timer With {.Enabled = False}
+    Private ComplexPIDCtrl As ComplexPIDController
 
     Dim MSFS_VerticalSpeed As Double
     Dim Final_VerticalSpeed As Double
     Dim TrimFinal As Short
+
+    Dim Mode As String
     Dim Iniciado As Boolean
-
-    Dim PIDController As PIDController
-    Dim PIDController2 As PIDController2
-
-    Dim WithEvents Hook As New Hook()
 
 #End Region
 
@@ -34,8 +29,11 @@
         InitializeComponent()
 
         Config = New ConfigManager()
+        FSUIPCMgr = New FSUIPC(Config)
 
-        PIDController = New PIDController(Config.PID_Kp, Config.PID_Ki, Config.PID_Kd)
+        ' Configurar el timer PID
+        PIDController1 = New PIDController(Config.PID_Kp, Config.PID_Ki, Config.PID_Kd)
+        PIDTimer.Interval = Config.PID_UpdateRate
 
         WindowState = If(Config.Start_Minimized = "true", FormWindowState.Minimized, FormWindowState.Normal)
         StartPosition = FormStartPosition.WindowsDefaultLocation
@@ -56,13 +54,7 @@
 
     Private Sub FMenu_Load(sender As Object, e As EventArgs) Handles Me.Load
         Text = "AutoTrim " + Version
-
-        FSUIPC_TConnect.Interval = 50
-        FSUIPC_Main.Interval = Config.FSUIPC_OffsetsUpdateRate
-
-        AddHandler FSUIPC_TConnect.Tick, AddressOf FSUIPC_TConnect_Tick
-        AddHandler FSUIPC_Main.Tick, AddressOf FSUIPC_Main_Tick
-
+        FSUIPCMgr.Connect()
     End Sub
 
     Private Sub HTexto_KeyPress(sender As Object, e As KeyPressEventArgs) Handles HTexto.KeyPress
@@ -71,9 +63,9 @@
 
     Protected Overrides Sub OnClosed(e As EventArgs)
         Iniciado = False
+        PIDTimer.Stop()
         Hook.UnregisterKeyPresses()
-        FSUIPC_TConnect.Stop()
-        FSUIPC_Main.Stop()
+        FSUIPCMgr.Dispose()
 
         MyBase.OnClosed(e)
 
@@ -112,7 +104,7 @@
         If (TTexto.Text = "") Then TTexto.Text = 0
 
         Final_VerticalSpeed = TTexto.Text
-        PIDController2.SetPoint = Final_VerticalSpeed
+        'PIDController2.SetPoint = Final_VerticalSpeed
 
         If (TTexto.Text = "0") Then
             Button1.Text = If(Iniciado = True, "Trim-Zero ON", "Trim-Zero OFF")
@@ -128,15 +120,16 @@
 #Region " Button1 "
 
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
-        If FSUIPC.FSUIPCConnection.IsOpen = False Then Exit Sub
+        If Not FSUIPCMgr.IsConnected Then Exit Sub
 
         If (Iniciado = False) Then
             Iniciado = True
             Button1.Text = If(TTexto.Text = "0", "Trim-Zero ON", "Trim-Auto ON")
-            Iniciar()
+            StartControl()
         Else
             Iniciado = False
             Button1.Text = If(TTexto.Text = "0", "Trim-Zero OFF", "Trim-Auto OFF")
+            StopControl()
         End If
     End Sub
 
@@ -144,34 +137,78 @@
 
 #End Region
 
+#Region " FSUIPC "
+
+    Private Sub FSUIPCMgr_ConnectionStatusChanged(isConnected As Boolean) Handles FSUIPCMgr.ConnectionStatusChanged
+        If (isConnected) Then
+            PConection.Image = My.Resources.Green
+            Hook.RegisterKeyPresses()
+        Else
+            PConection.Image = My.Resources.Red
+            Iniciado = False
+            StopControl()
+            Button1.Text = Button1.Text.Replace("ON", "OFF")
+            Hook.UnregisterKeyPresses()
+        End If
+    End Sub
+
+    Private Sub FSUIPCMgr_DataUpdated(verticalSpeed As Double, trimValue As Short, trimPercentage As Double) Handles FSUIPCMgr.DataUpdated
+        MSFS_VerticalSpeed = verticalSpeed
+        Texto.Text = MSFS_VerticalSpeed.ToString("F0")
+        Label1.Text = Math.Round(trimPercentage, 2).ToString + "% - (" + trimValue.ToString + ")"
+    End Sub
+
+#End Region
+
 #Region " Hook "
 
+#Region " Set Trim Zero "
+
     Public Sub SetTrimZero()
-        If (Not FSUIPC.FSUIPCConnection.IsOpen) Then Exit Sub
+        If (Not FSUIPCMgr.IsConnected) Then Return
 
         Mode = "TrimZero"
         Final_VerticalSpeed = 0
         TTexto.Text = "0"
-        PIDController2.SetPoint = Final_VerticalSpeed
+        'PIDController2.SetPoint = Final_VerticalSpeed
         Button1.Text = "Trim-Zero ON"
-        If (Iniciado = False) Then Iniciado = True : Iniciar()
+        If (Iniciado = False) Then
+            Iniciado = True
+            StartControl()
+        End If
     End Sub
 
+#End Region
+
+#Region " Set Trim Auto "
+
     Public Sub SetTrimAuto()
-        If (Not FSUIPC.FSUIPCConnection.IsOpen) Then Exit Sub
+        If (Not FSUIPCMgr.IsConnected) Then Return
 
         Mode = "TrimAuto"
         Final_VerticalSpeed = MSFS_VerticalSpeed
         TTexto.Text = Math.Round(Final_VerticalSpeed).ToString()
-        PIDController2.SetPoint = Final_VerticalSpeed
+        'PIDController2.SetPoint = Final_VerticalSpeed
         Button1.Text = "Trim-Auto ON"
-        If (Iniciado = False) Then Iniciado = True : Iniciar()
+        If (Iniciado = False) Then
+            Iniciado = True
+            StartControl()
+        End If
     End Sub
+
+#End Region
+
+#Region " Stop Trim "
 
     Public Sub StopTrim()
         Iniciado = False
-        Button1.Text = If(Mode = "TrimZero", "Trim-Zero OFF", "Trim-Auto OFF")
+        StopControl()
+        Button1.Text = Button1.Text.Replace("ON", "OFF")
     End Sub
+
+#End Region
+
+#Region " Trim Zero "
 
     Private Sub Hook_TrimZero() Handles Hook.TrimZero
         If (Mode = "TrimZero" And Iniciado = True) Then
@@ -180,6 +217,10 @@
             SetTrimZero()
         End If
     End Sub
+
+#End Region
+
+#Region " Trim Auto "
 
     Private Sub Hook_TrimAuto() Handles Hook.TrimAuto
         If (Mode = "TrimAuto" And Iniciado = True) Then
@@ -191,131 +232,68 @@
 
 #End Region
 
-#Region " Get Trim Percentage "
+#End Region
 
-    Private Function GetTrimPercentage(TrimValue As Integer) As Double
-        Dim LowerLimit As Integer = -16383
-        Dim UpperLimit As Integer = 16383
+#Region " Control PID "
 
-        If (TrimValue < LowerLimit) Then Return (0)
-        If (TrimValue > UpperLimit) Then Return (100)
+#Region " Start "
 
-        Return (((TrimValue - LowerLimit) / (UpperLimit - LowerLimit)) * 100.0)
-    End Function
+    Private Sub StartControl()
+        If Not FSUIPCMgr.IsConnected Then Return
+
+        Dim velocidadDeseada As Double = TTexto.Text
+        ComplexPIDCtrl = New ComplexPIDController(velocidadDeseada, Config.PID_Kp, Config.PID_Ki, Config.PID_Kd)
+
+        PIDTimer.Start()
+    End Sub
 
 #End Region
 
-#Region " FSUIPC Connection "
+#Region " Stop "
 
-    Private Sub FSUIPC_TConnect_Tick(sender As Object, e As EventArgs)
-        If (FSUIPC_TConnect.Interval = 50) Then FSUIPC_TConnect.Interval = Config.FSUIPC_RetryInterval
-
-        Try
-            FSUIPC.FSUIPCConnection.Open()
-
-            If (FSUIPC.FSUIPCConnection.IsOpen) Then
-                PConection.Image = My.Resources.Green
-                Hook.RegisterKeyPresses()
-                FSUIPC_TConnect.Stop()
-                FSUIPC_Main.Start()
-            End If
-        Catch : End Try
+    Private Sub StopControl()
+        PIDTimer.Stop()
+        ComplexPIDCtrl = Nothing
     End Sub
 
-    Private Sub FSUIPC_Main_Tick(sender As Object, e As EventArgs)
+#End Region
+
+#Region " Hook "
+
+    Private Sub PIDTimer_Tick(sender As Object, e As EventArgs) Handles PIDTimer.Tick
+        If (Not Iniciado OrElse Not FSUIPCMgr.IsConnected OrElse ComplexPIDCtrl Is Nothing) Then
+            StopControl()
+            Return
+        End If
+
         Try
-            If (Not FSUIPC.FSUIPCConnection.IsOpen) Then Throw New Exception()
+            ' Usar la velocidad vertical actual que ya está siendo actualizada por el evento DataUpdated
+            Dim velocidadVerticalActual As Double = MSFS_VerticalSpeed
 
-            FSUIPC.FSUIPCConnection.Process()
-            FSUIPC.FSUIPCConnection.UserInputServices.CheckForInput()
+            ' Calcular la nueva salida del controlador PID y ajustar el trim
+            Dim newTrimValue = FSUIPCMgr.TrimValue + ComplexPIDCtrl.Compute(velocidadVerticalActual)
 
-            MSFS_VerticalSpeed = (FSUIPC_VerticalSpeed.Value / 256) * 60.0 * 3.28084
+            If (Double.IsNaN(newTrimValue) OrElse Double.IsInfinity(newTrimValue)) Then
+                ' Lógica de manejo de errores, como registro o alerta
+                Return
+            End If
 
-            Texto.Text = MSFS_VerticalSpeed.ToString("F0")
-            Label1.Text = Math.Round(GetTrimPercentage(Trim.Value), 2).ToString + "% - (" + Trim.Value.ToString + ")"
-        Catch ex As Exception
-            PConection.Image = My.Resources.Red
+            If (newTrimValue > FSUIPCMgr.upperLimit) Then
+                newTrimValue = FSUIPCMgr.upperLimit
+            ElseIf (newTrimValue < FSUIPCMgr.lowerLimit) Then
+                newTrimValue = FSUIPCMgr.lowerLimit
+            End If
+
+            FSUIPCMgr.SetTrim(CShort(newTrimValue))
+
+        Catch
             Iniciado = False
+            StopControl()
             Button1.Text = Button1.Text.Replace("ON", "OFF")
-            FSUIPC_Main.Stop()
-            Hook.UnregisterKeyPresses()
-            FSUIPC_TConnect.Start()
         End Try
     End Sub
 
 #End Region
-
-#Region " Iniciar "
-
-    Private Sub Iniciar()
-        Dim VelocidadDeseada As Double = TTexto.Text
-        ' Usar valores PID de la configuración
-        Dim pidController As New ComplexPIDController(VelocidadDeseada, Config.PID_Kp, Config.PID_Ki, Config.PID_Kd)
-
-        While (Iniciado)
-            ' Leer la velocidad vertical actual
-            FSUIPC.FSUIPCConnection.Process()
-            Dim velocidadVerticalActual As Double = MSFS_VerticalSpeed
-
-            ' Calcular la nueva salida del controlador PID y ajustar el trim:
-            Dim newTrimValue = Trim.Value + pidController.Compute(velocidadVerticalActual)
-
-            If (Double.IsNaN(newTrimValue) OrElse Double.IsInfinity(newTrimValue)) Then
-                ' Lógica de manejo de errores, como registro o alerta
-            Else
-                If (newTrimValue > 16383) Then
-                    newTrimValue = 16383
-                ElseIf (newTrimValue < -16383) Then
-                    newTrimValue = -16383
-                End If
-
-                TrimSet.Value = newTrimValue
-            End If
-
-            ' Usar la tasa de actualización de la configuración:
-            Application.DoEvents()
-            Threading.Thread.Sleep(Config.PID_UpdateRate)
-        End While
-    End Sub
-
-#End Region
-
-#Region " Iniciar2 "
-
-    Private Sub Iniciar2()
-        FSUIPC.FSUIPCConnection.Process()
-        TrimFinal = Trim.Value
-        PIDController.SetPoint = Final_VerticalSpeed
-        PIDController.ProcessVariable = MSFS_VerticalSpeed
-
-        While (Iniciado)
-            Dim ControlOutput As Double = PIDController.ControlOutput
-            Dim PotentialControlOutput As Integer = CInt(Math.Round(ControlOutput))
-
-            If (PotentialControlOutput > 16383) Then
-                PotentialControlOutput = 16383
-            ElseIf (PotentialControlOutput < -16383) Then
-                PotentialControlOutput = -16383
-            End If
-
-            Dim ShortControlOutput As Short = CShort(PotentialControlOutput)
-            Dim PotentialTrimFinal As Integer = TrimFinal + ShortControlOutput
-
-            If (PotentialTrimFinal > 16383) Then
-                TrimFinal = 16383
-            ElseIf (PotentialTrimFinal < -16383) Then
-                TrimFinal = -16383
-            Else
-                TrimFinal = PotentialTrimFinal
-            End If
-
-            PIDController.ProcessVariable = MSFS_VerticalSpeed
-            TrimSet.Value = Short.Parse(TrimFinal)
-
-            Application.DoEvents()
-            Threading.Thread.Sleep(Config.PID_UpdateRate)
-        End While
-    End Sub
 
 #End Region
 

@@ -1,4 +1,5 @@
-﻿Public Class ComplexPIDController
+﻿
+Public Class ComplexPIDController
 
     Private PIDVelocity As PIDControllerS
     Private PIDRateOfChange As PIDControllerS

@@ -12,10 +12,10 @@ Public Class Hook
 
     Public Sub RegisterKeyPresses()
         Try
-            Dim Input As FSUIPC.UserInputServices = FSUIPC.FSUIPCConnection.UserInputServices
+            Dim Input As Global.FSUIPC.UserInputServices = Global.FSUIPC.FSUIPCConnection.UserInputServices
 
-            Input.AddKeyPress("TrimZero", FSUIPC.ModifierKeys.Ctrl, Keys.T, True)
-            Input.AddKeyPress("TrimAuto", FSUIPC.ModifierKeys.Shift, Keys.T, True)
+            Input.AddKeyPress("TrimZero", Global.FSUIPC.ModifierKeys.Ctrl, Keys.T, True)
+            Input.AddKeyPress("TrimAuto", Global.FSUIPC.ModifierKeys.Shift, Keys.T, True)
 
             AddHandler Input.KeyPressed, AddressOf Input_KeyPressed
         Catch ex As Exception
@@ -29,7 +29,7 @@ Public Class Hook
 
     Public Sub UnregisterKeyPresses()
         Try
-            Dim Input As FSUIPC.UserInputServices = FSUIPC.FSUIPCConnection.UserInputServices
+            Dim Input As Global.FSUIPC.UserInputServices = Global.FSUIPC.FSUIPCConnection.UserInputServices
             RemoveHandler Input.KeyPressed, AddressOf Input_KeyPressed
 
             Input.RemoveKeyPress("TrimZero")
@@ -41,7 +41,7 @@ Public Class Hook
 
 #Region " Input "
 
-    Private Sub Input_KeyPressed(sender As Object, e As FSUIPC.UserInputKeyEventArgs)
+    Private Sub Input_KeyPressed(sender As Object, e As Global.FSUIPC.UserInputKeyEventArgs)
         Select Case (e.ID)
             Case "TrimZero"
                 RaiseEvent TrimZero()
