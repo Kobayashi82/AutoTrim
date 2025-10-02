@@ -104,6 +104,7 @@
     <Compile Include="BonFire.vb">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="ConfigManager.vb" />
     <Compile Include="FMenu.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -152,7 +153,6 @@
       <CustomToolNamespace>My</CustomToolNamespace>
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
     </None>
-    <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="AutoTrim.ico" />

@@ -1,13 +1,24 @@
-﻿
-Public Class ComplexPIDController
+﻿Public Class ComplexPIDController
 
-    Private PIDVelocity As New PIDControllerS(0.02, 0.00005, 3)
-    Private PIDRateOfChange As New PIDControllerS(0, 0, 0.000000)
+    Private PIDVelocity As PIDControllerS
+    Private PIDRateOfChange As PIDControllerS
     Private _velocities As New Queue(Of Double)(2)
     Private _setPoint As Double
 
     Public Sub New(velocitySetPoint As Double)
         _setPoint = velocitySetPoint
+        ' Usar valores por defecto si no se pasan parámetros
+        PIDVelocity = New PIDControllerS(0.02, 0.00005, 3)
+        PIDRateOfChange = New PIDControllerS(0, 0, 0.000000)
+        PIDVelocity.SetPoint = _setPoint
+        PIDRateOfChange.SetPoint = 0
+    End Sub
+
+    Public Sub New(velocitySetPoint As Double, kp As Double, ki As Double, kd As Double)
+        _setPoint = velocitySetPoint
+        ' Usar valores de configuración
+        PIDVelocity = New PIDControllerS(kp, ki, kd)
+        PIDRateOfChange = New PIDControllerS(0, 0, 0.000000)
         PIDVelocity.SetPoint = _setPoint
         PIDRateOfChange.SetPoint = 0
     End Sub

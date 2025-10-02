@@ -1,11 +1,13 @@
-﻿
-Public Class FMenu
+﻿Public Class FMenu
 
 #Region " Variables "
 
     Private Version As String = "1.0"
     Dim Mode As String
     Dim Loaded As Boolean
+
+    ' Configuración
+    Private Config As ConfigManager
 
     Dim FSUIPC_TConnect As New Timer With {.Enabled = True, .Interval = 50}
     Dim FSUIPC_Main As New Timer With {.Enabled = False, .Interval = 50}
@@ -19,10 +21,34 @@ Public Class FMenu
     Dim TrimFinal As Short
     Dim Iniciado As Boolean
 
-    Dim PIDController As New PIDController(0.02, 0.00005, 3)
-    Dim PIDController2 As New PIDController2(0.5, 0.5, 3)
+    Dim PIDController As PIDController
+    Dim PIDController2 As PIDController2
 
     Dim WithEvents Hook As New Hook()
+
+#End Region
+
+#Region " Constructor "
+
+    Public Sub New()
+        InitializeComponent()
+
+        Config = New ConfigManager()
+
+        PIDController = New PIDController(Config.PID_Kp, Config.PID_Ki, Config.PID_Kd)
+
+        WindowState = If(Config.Start_Minimized = "true", FormWindowState.Minimized, FormWindowState.Normal)
+        StartPosition = FormStartPosition.WindowsDefaultLocation
+
+        Dim windowRect As New Rectangle(Config.Window_X, Config.Window_Y, Width, Height)
+        For Each screen As Screen In Screen.AllScreens
+            If screen.WorkingArea.IntersectsWith(windowRect) Then
+                StartPosition = FormStartPosition.Manual
+                DesktopBounds = windowRect
+                Exit For
+            End If
+        Next
+    End Sub
 
 #End Region
 
@@ -31,45 +57,17 @@ Public Class FMenu
     Private Sub FMenu_Load(sender As Object, e As EventArgs) Handles Me.Load
         Text = "AutoTrim " + Version
 
+        FSUIPC_TConnect.Interval = 50
+        FSUIPC_Main.Interval = Config.FSUIPC_OffsetsUpdateRate
+
         AddHandler FSUIPC_TConnect.Tick, AddressOf FSUIPC_TConnect_Tick
         AddHandler FSUIPC_Main.Tick, AddressOf FSUIPC_Main_Tick
-        Height = 216
+
     End Sub
 
     Private Sub HTexto_KeyPress(sender As Object, e As KeyPressEventArgs) Handles HTexto.KeyPress
         e.Handled = True
     End Sub
-
-#End Region
-
-#Region " Functions "
-
-#Region " Save Position "
-
-    'Public Sub New()
-    '    InitializeComponent()
-
-    'WindowState = FormWindowState.Normal
-    'StartPosition = FormStartPosition.WindowsDefaultBounds
-
-    'If (My.Settings.WindowPosition <> Rectangle.Empty AndAlso IsVisibleOnAnyScreen(My.Settings.WindowPosition)) Then
-    '    StartPosition = FormStartPosition.Manual
-    '    DesktopBounds = My.Settings.WindowPosition
-
-    '    WindowState = My.Settings.WindowState
-    'Else
-    '    StartPosition = FormStartPosition.WindowsDefaultLocation
-    '    Size = My.Settings.WindowPosition.Size
-    'End If
-    'End Sub
-
-    'Private Function IsVisibleOnAnyScreen(rect As Rectangle) As Boolean
-    '    For Each screen As Screen In Screen.AllScreens
-    '        If (screen.WorkingArea.IntersectsWith(rect)) Then Return (True)
-    '    Next
-
-    '    Return (False)
-    'End Function
 
     Protected Overrides Sub OnClosed(e As EventArgs)
         Iniciado = False
@@ -79,73 +77,8 @@ Public Class FMenu
 
         MyBase.OnClosed(e)
 
-        Select Case (WindowState)
-            Case FormWindowState.Normal, FormWindowState.Maximized
-                My.Settings.WindowState = WindowState
-            Case Else
-                My.Settings.WindowState = FormWindowState.Normal
-        End Select
-
         Visible = False
-        WindowState = FormWindowState.Normal
-        'My.Settings.WindowPosition = New Rectangle(DesktopBounds.X, DesktopBounds.Y, Width, Height)
-        'My.Settings.Save()
-    End Sub
-
-#End Region
-
-#Region " Get Trim Percentage "
-
-    Private Function GetTrimPercentage(TrimValue As Integer) As Double
-        Dim LowerLimit As Integer = -16383
-        Dim UpperLimit As Integer = 16383
-
-        If (TrimValue < LowerLimit) Then Return (0)
-        If (TrimValue > UpperLimit) Then Return (100)
-
-        Return (((TrimValue - LowerLimit) / (UpperLimit - LowerLimit)) * 100.0)
-    End Function
-
-#End Region
-
-#End Region
-
-#Region " FSUIPC Connection "
-
-    Private Sub FSUIPC_TConnect_Tick(sender As Object, e As EventArgs)
-        If (FSUIPC_TConnect.Interval = 50) Then FSUIPC_TConnect.Interval = 1000
-
-        Try
-            FSUIPC.FSUIPCConnection.Open()
-
-            If (FSUIPC.FSUIPCConnection.IsOpen) Then
-                PConection.Image = My.Resources.Green
-                Hook.RegisterKeyPresses()
-                FSUIPC_TConnect.Stop()
-                FSUIPC_Main.Start()
-            End If
-        Catch : End Try
-    End Sub
-
-    Private Sub FSUIPC_Main_Tick(sender As Object, e As EventArgs)
-        Try
-            If (Not FSUIPC.FSUIPCConnection.IsOpen) Then Throw New Exception()
-
-            FSUIPC.FSUIPCConnection.Process()
-            FSUIPC.FSUIPCConnection.UserInputServices.CheckForInput()
-
-            MSFS_VerticalSpeed = (FSUIPC_VerticalSpeed.Value / 256) * 60.0 * 3.28084
-
-            Texto.Text = MSFS_VerticalSpeed.ToString("F0")
-            Label1.Text = Math.Round(GetTrimPercentage(Trim.Value), 2).ToString + "% - (" + Trim.Value.ToString + ")"
-        Catch ex As Exception
-            PConection.Image = My.Resources.Red
-            Iniciado = False
-            Button1.Text = Button1.Text.Replace("ON", "OFF")
-            FSUIPC_Main.Stop()
-            Hook.UnregisterKeyPresses()
-            FSUIPC_TConnect.Start()
-        End Try
+        Config.SaveConfiguration(Left, Top)
     End Sub
 
 #End Region
@@ -258,11 +191,66 @@ Public Class FMenu
 
 #End Region
 
+#Region " Get Trim Percentage "
+
+    Private Function GetTrimPercentage(TrimValue As Integer) As Double
+        Dim LowerLimit As Integer = -16383
+        Dim UpperLimit As Integer = 16383
+
+        If (TrimValue < LowerLimit) Then Return (0)
+        If (TrimValue > UpperLimit) Then Return (100)
+
+        Return (((TrimValue - LowerLimit) / (UpperLimit - LowerLimit)) * 100.0)
+    End Function
+
+#End Region
+
+#Region " FSUIPC Connection "
+
+    Private Sub FSUIPC_TConnect_Tick(sender As Object, e As EventArgs)
+        If (FSUIPC_TConnect.Interval = 50) Then FSUIPC_TConnect.Interval = Config.FSUIPC_RetryInterval
+
+        Try
+            FSUIPC.FSUIPCConnection.Open()
+
+            If (FSUIPC.FSUIPCConnection.IsOpen) Then
+                PConection.Image = My.Resources.Green
+                Hook.RegisterKeyPresses()
+                FSUIPC_TConnect.Stop()
+                FSUIPC_Main.Start()
+            End If
+        Catch : End Try
+    End Sub
+
+    Private Sub FSUIPC_Main_Tick(sender As Object, e As EventArgs)
+        Try
+            If (Not FSUIPC.FSUIPCConnection.IsOpen) Then Throw New Exception()
+
+            FSUIPC.FSUIPCConnection.Process()
+            FSUIPC.FSUIPCConnection.UserInputServices.CheckForInput()
+
+            MSFS_VerticalSpeed = (FSUIPC_VerticalSpeed.Value / 256) * 60.0 * 3.28084
+
+            Texto.Text = MSFS_VerticalSpeed.ToString("F0")
+            Label1.Text = Math.Round(GetTrimPercentage(Trim.Value), 2).ToString + "% - (" + Trim.Value.ToString + ")"
+        Catch ex As Exception
+            PConection.Image = My.Resources.Red
+            Iniciado = False
+            Button1.Text = Button1.Text.Replace("ON", "OFF")
+            FSUIPC_Main.Stop()
+            Hook.UnregisterKeyPresses()
+            FSUIPC_TConnect.Start()
+        End Try
+    End Sub
+
+#End Region
+
 #Region " Iniciar "
 
     Private Sub Iniciar()
         Dim VelocidadDeseada As Double = TTexto.Text
-        Dim pidController As New ComplexPIDController(VelocidadDeseada)
+        ' Usar valores PID de la configuración
+        Dim pidController As New ComplexPIDController(VelocidadDeseada, Config.PID_Kp, Config.PID_Ki, Config.PID_Kd)
 
         While (Iniciado)
             ' Leer la velocidad vertical actual
@@ -284,9 +272,9 @@ Public Class FMenu
                 TrimSet.Value = newTrimValue
             End If
 
-            ' Dormir durante 50 ms antes de la siguiente actualización:
+            ' Usar la tasa de actualización de la configuración:
             Application.DoEvents()
-            Threading.Thread.Sleep(50)
+            Threading.Thread.Sleep(Config.PID_UpdateRate)
         End While
     End Sub
 
@@ -325,7 +313,7 @@ Public Class FMenu
             TrimSet.Value = Short.Parse(TrimFinal)
 
             Application.DoEvents()
-            Threading.Thread.Sleep(50)
+            Threading.Thread.Sleep(Config.PID_UpdateRate)
         End While
     End Sub
 
