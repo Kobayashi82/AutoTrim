@@ -69,7 +69,7 @@ Partial Class FMenu
         Me.LSFuel.ForeColor = System.Drawing.Color.MediumTurquoise
         Me.LSFuel.Location = New System.Drawing.Point(59, 14)
         Me.LSFuel.Name = "LSFuel"
-        Me.LSFuel.Size = New System.Drawing.Size(96, 16)
+        Me.LSFuel.Size = New System.Drawing.Size(95, 16)
         Me.LSFuel.TabIndex = 83
         Me.LSFuel.Text = "Vertical Speed:"
         Me.LSFuel.TextAlign = System.Drawing.ContentAlignment.MiddleRight
@@ -88,7 +88,7 @@ Partial Class FMenu
         '
         'PConection
         '
-        Me.PConection.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.PConection.Cursor = System.Windows.Forms.Cursors.Default
         Me.PConection.Image = CType(resources.GetObject("PConection.Image"), System.Drawing.Image)
         Me.PConection.Location = New System.Drawing.Point(12, 12)
         Me.PConection.Name = "PConection"
@@ -114,7 +114,7 @@ Partial Class FMenu
         Me.Label1.ForeColor = System.Drawing.Color.FromArgb(CType(CType(222, Byte), Integer), CType(CType(226, Byte), Integer), CType(CType(230, Byte), Integer))
         Me.Label1.Location = New System.Drawing.Point(124, 117)
         Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(72, 16)
+        Me.Label1.Size = New System.Drawing.Size(71, 16)
         Me.Label1.TabIndex = 82
         Me.Label1.Text = "0,00% - (0)"
         Me.Label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
@@ -126,7 +126,7 @@ Partial Class FMenu
         Me.Label2.ForeColor = System.Drawing.Color.MediumTurquoise
         Me.Label2.Location = New System.Drawing.Point(12, 38)
         Me.Label2.Name = "Label2"
-        Me.Label2.Size = New System.Drawing.Size(143, 16)
+        Me.Label2.Size = New System.Drawing.Size(142, 16)
         Me.Label2.TabIndex = 83
         Me.Label2.Text = "Vertical Speed (Target):"
         Me.Label2.TextAlign = System.Drawing.ContentAlignment.MiddleRight
@@ -138,7 +138,7 @@ Partial Class FMenu
         Me.Label3.ForeColor = System.Drawing.Color.MediumTurquoise
         Me.Label3.Location = New System.Drawing.Point(45, 117)
         Me.Label3.Name = "Label3"
-        Me.Label3.Size = New System.Drawing.Size(73, 16)
+        Me.Label3.Size = New System.Drawing.Size(72, 16)
         Me.Label3.TabIndex = 83
         Me.Label3.Text = "Trim Value:"
         Me.Label3.TextAlign = System.Drawing.ContentAlignment.MiddleRight
@@ -151,7 +151,7 @@ Partial Class FMenu
         Me.Label4.ForeColor = System.Drawing.Color.FromArgb(CType(CType(222, Byte), Integer), CType(CType(226, Byte), Integer), CType(CType(230, Byte), Integer))
         Me.Label4.Location = New System.Drawing.Point(205, 38)
         Me.Label4.Name = "Label4"
-        Me.Label4.Size = New System.Drawing.Size(29, 16)
+        Me.Label4.Size = New System.Drawing.Size(28, 16)
         Me.Label4.TabIndex = 82
         Me.Label4.Text = "fpm"
         Me.Label4.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
@@ -164,7 +164,7 @@ Partial Class FMenu
         Me.Label5.ForeColor = System.Drawing.Color.FromArgb(CType(CType(222, Byte), Integer), CType(CType(226, Byte), Integer), CType(CType(230, Byte), Integer))
         Me.Label5.Location = New System.Drawing.Point(204, 14)
         Me.Label5.Name = "Label5"
-        Me.Label5.Size = New System.Drawing.Size(29, 16)
+        Me.Label5.Size = New System.Drawing.Size(28, 16)
         Me.Label5.TabIndex = 82
         Me.Label5.Text = "fpm"
         Me.Label5.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
@@ -176,7 +176,7 @@ Partial Class FMenu
         Me.LDiff.ForeColor = System.Drawing.Color.MediumTurquoise
         Me.LDiff.Location = New System.Drawing.Point(88, 142)
         Me.LDiff.Name = "LDiff"
-        Me.LDiff.Size = New System.Drawing.Size(30, 16)
+        Me.LDiff.Size = New System.Drawing.Size(29, 16)
         Me.LDiff.TabIndex = 83
         Me.LDiff.Text = "Diff:"
         Me.LDiff.TextAlign = System.Drawing.ContentAlignment.MiddleRight
@@ -189,7 +189,7 @@ Partial Class FMenu
         Me.TDiff.ForeColor = System.Drawing.Color.FromArgb(CType(CType(222, Byte), Integer), CType(CType(226, Byte), Integer), CType(CType(230, Byte), Integer))
         Me.TDiff.Location = New System.Drawing.Point(124, 142)
         Me.TDiff.Name = "TDiff"
-        Me.TDiff.Size = New System.Drawing.Size(15, 16)
+        Me.TDiff.Size = New System.Drawing.Size(14, 16)
         Me.TDiff.TabIndex = 82
         Me.TDiff.Text = "0"
         Me.TDiff.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
@@ -220,7 +220,7 @@ Partial Class FMenu
         Me.MinimumSize = New System.Drawing.Size(272, 155)
         Me.Name = "FMenu"
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
-        Me.Text = "Auto-Trim"
+        Me.Text = "AutoTrim"
         Me.TopMost = True
         CType(Me.PConection, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
