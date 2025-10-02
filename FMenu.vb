@@ -46,30 +46,30 @@ Public Class FMenu
 
 #Region " Save Position "
 
-    Public Sub New()
-        InitializeComponent()
+    'Public Sub New()
+    '    InitializeComponent()
 
-        WindowState = FormWindowState.Normal
-        StartPosition = FormStartPosition.WindowsDefaultBounds
+    'WindowState = FormWindowState.Normal
+    'StartPosition = FormStartPosition.WindowsDefaultBounds
 
-        If (My.Settings.WindowPosition <> Rectangle.Empty AndAlso IsVisibleOnAnyScreen(My.Settings.WindowPosition)) Then
-            StartPosition = FormStartPosition.Manual
-            DesktopBounds = My.Settings.WindowPosition
+    'If (My.Settings.WindowPosition <> Rectangle.Empty AndAlso IsVisibleOnAnyScreen(My.Settings.WindowPosition)) Then
+    '    StartPosition = FormStartPosition.Manual
+    '    DesktopBounds = My.Settings.WindowPosition
 
-            WindowState = My.Settings.WindowState
-        Else
-            StartPosition = FormStartPosition.WindowsDefaultLocation
-            Size = My.Settings.WindowPosition.Size
-        End If
-    End Sub
+    '    WindowState = My.Settings.WindowState
+    'Else
+    '    StartPosition = FormStartPosition.WindowsDefaultLocation
+    '    Size = My.Settings.WindowPosition.Size
+    'End If
+    'End Sub
 
-    Private Function IsVisibleOnAnyScreen(rect As Rectangle) As Boolean
-        For Each screen As Screen In Screen.AllScreens
-            If (screen.WorkingArea.IntersectsWith(rect)) Then Return (True)
-        Next
+    'Private Function IsVisibleOnAnyScreen(rect As Rectangle) As Boolean
+    '    For Each screen As Screen In Screen.AllScreens
+    '        If (screen.WorkingArea.IntersectsWith(rect)) Then Return (True)
+    '    Next
 
-        Return (False)
-    End Function
+    '    Return (False)
+    'End Function
 
     Protected Overrides Sub OnClosed(e As EventArgs)
         Iniciado = False
@@ -88,8 +88,8 @@ Public Class FMenu
 
         Visible = False
         WindowState = FormWindowState.Normal
-        My.Settings.WindowPosition = New Rectangle(DesktopBounds.X, DesktopBounds.Y, Width, Height)
-        My.Settings.Save()
+        'My.Settings.WindowPosition = New Rectangle(DesktopBounds.X, DesktopBounds.Y, Width, Height)
+        'My.Settings.Save()
     End Sub
 
 #End Region

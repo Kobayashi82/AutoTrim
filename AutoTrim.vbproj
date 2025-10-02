@@ -156,14 +156,10 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="AutoTrim.ico" />
-    <None Include="bin\Release\fsuipcClient.dll" />
     <None Include="bin\x64\Release\fsuipcClient.dll" />
-    <Content Include="Icon.ico" />
-    <Content Include="Icono.ico" />
     <None Include="packages.config" />
     <None Include="Resources\Red.png" />
     <None Include="Resources\Green.png" />
-    <None Include="bin\Release\ExifMetadata.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <PropertyGroup>

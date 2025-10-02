@@ -8,11 +8,11 @@ Imports System.Runtime.InteropServices
 
 ' Revisar los valores de los atributos del ensamblado
 
-<Assembly: AssemblyTitle("Passengers")>
+<Assembly: AssemblyTitle("AutoTrim")>
 <Assembly: AssemblyDescription("")>
-<Assembly: AssemblyCompany("")>
-<Assembly: AssemblyProduct("Passengers")>
-<Assembly: AssemblyCopyright("Kobayashi Corp © 2023")>
+<Assembly: AssemblyCompany("Kobayashi Corp")>
+<Assembly: AssemblyProduct("AutoTrim")>
+<Assembly: AssemblyCopyright("Kobayashi Corp © 2025")>
 <Assembly: AssemblyTrademark("")>
 
 <Assembly: ComVisible(False)>
