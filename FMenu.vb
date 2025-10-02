@@ -1,5 +1,4 @@
-﻿
-'Trim Wheel Step 79
+﻿'Trim Wheel Step 79
 
 #Region " Trimmer "
 
@@ -16,29 +15,28 @@ Public Class FMenu
 
     Dim Trim As New FSUIPC.Offset(Of Short)(&HBC2)
     Dim TrimSet As New FSUIPC.Offset(Of Short)(&HBC0)
+    Dim FSUIPC_VerticalSpeed As New FSUIPC.Offset(Of Integer)(&H2C8)
 
     Dim MSFS_VerticalSpeed As Double
     Dim Final_VerticalSpeed As Double
     Dim TrimFinal As Short
     Dim Iniciado As Boolean
 
-    'Dim PIDController As New PIDController(0.1, 0.0005, 8)
-    'Dim PIDController As New PIDController(0.00008, 0.00005, 6)  ' afinado
-    'Este Dim PIDController As New PIDController(0.05, 0.0005, 8)  'pretty good
-
-
-    'Dim PIDController As New PIDController(0.05, 0.0005, 3)
-    'Dim PIDController As New PIDController(0.06, 0.04, 0.0225)
-
     Dim PIDController As New PIDController(0.02, 0.00005, 3)
-
     Dim PIDController2 As New PIDController2(0.5, 0.5, 3)
+
+    ' Instancia de Hook para manejar las teclas
+    Dim WithEvents keyHook As New Hook()
+
 #End Region
 
 #Region " Formulario "
 
     Private Sub FMenu_Load(sender As Object, e As EventArgs) Handles Me.Load
         Text = "Trimmer " + Version
+
+        ' Verificar si se está ejecutando como administrador
+        CheckAdministratorPrivileges()
 
         AddHandler FSUIPC_TConnect.Tick, AddressOf FSUIPC_TConnect_Tick
         AddHandler FSUIPC_Main.Tick, AddressOf FSUIPC_Main_Tick
@@ -83,7 +81,7 @@ Public Class FMenu
 
     Protected Overrides Sub OnClosed(e As EventArgs)
         Iniciado = False
-        UnregisterKeyPresses()
+        keyHook.UnregisterKeyPresses()
         FSUIPC_TConnect.Stop()
         FSUIPC_Main.Stop()
 
@@ -118,7 +116,123 @@ Public Class FMenu
 
 #End Region
 
+#Region " FSUIPC Connection "
+
+    Private Sub FSUIPC_TConnect_Tick(sender As Object, e As EventArgs)
+        Try
+            FSUIPC.FSUIPCConnection.Open()
+
+            If FSUIPC.FSUIPCConnection.IsOpen Then
+                PConection.Image = My.Resources.Green
+                keyHook.RegisterKeyPresses()
+                FSUIPC_TConnect.Stop()
+                FSUIPC_Main.Start()
+
+                ' Mostrar mensaje de conexión exitosa
+                Console.WriteLine("FSUIPC conectado exitosamente")
+            End If
+
+        Catch ex As FSUIPC.FSUIPCException
+            ' Manejo específico de errores de FSUIPC
+            Select Case ex.FSUIPCErrorCode
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_OPEN
+                    Console.WriteLine("FSUIPC no está ejecutándose")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_NOFS
+                    Console.WriteLine("Simulador no está conectado a FSUIPC")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_REGMSG
+                    Console.WriteLine("Error registrando mensaje con FSUIPC")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_ATOM
+                    Console.WriteLine("Error creando átomo para FSUIPC")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_MAP
+                    Console.WriteLine("Error mapeando vista de archivo de FSUIPC")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_VIEW
+                    Console.WriteLine("Error mapeando vista de memoria de FSUIPC")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_VERSION
+                    Console.WriteLine("Versión incompatible de FSUIPC")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_WRONGFS
+                    Console.WriteLine("Simulador incorrecto conectado a FSUIPC")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_NOTOPEN
+                    Console.WriteLine("FSUIPC no está abierto")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_NODATA
+                    Console.WriteLine("No hay datos disponibles en FSUIPC")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_TIMEOUT
+                    Console.WriteLine("Timeout conectando a FSUIPC")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_SENDMSG
+                    Console.WriteLine("Error enviando mensaje a FSUIPC - Verifica que FSUIPC esté ejecutándose y MSFS conectado")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_DATA
+                    Console.WriteLine("Error en datos de FSUIPC")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_RUNNING
+                    Console.WriteLine("FSUIPC ya está en ejecución")
+                Case FSUIPC.FSUIPCError.FSUIPC_ERR_SIZE
+                    Console.WriteLine("Error de tamaño en datos de FSUIPC")
+                Case Else
+                    Console.WriteLine($"Error FSUIPC desconocido: {ex.FSUIPCErrorCode} - {ex.Message}")
+            End Select
+
+            ' Asegurar que el indicador visual muestre desconectado
+            PConection.Image = My.Resources.Red
+
+        Catch ex As Exception
+            ' Otros errores no relacionados con FSUIPC
+            Console.WriteLine($"Error general conectando: {ex.Message}")
+            PConection.Image = My.Resources.Red
+        End Try
+    End Sub
+
+    Private Sub FSUIPC_Main_Tick(sender As Object, e As EventArgs)
+        Try
+            ' Verificar que la conexión sigue activa antes de procesar
+            If Not FSUIPC.FSUIPCConnection.IsOpen Then
+                Throw New Exception("Conexión FSUIPC perdida")
+            End If
+
+            FSUIPC.FSUIPCConnection.Process()
+            FSUIPC.FSUIPCConnection.UserInputServices.CheckForInput()
+
+            MSFS_VerticalSpeed = (FSUIPC_VerticalSpeed.Value / 256) * 60.0 * 3.28084
+
+            Texto.Text = MSFS_VerticalSpeed.ToString("F0")
+            Label1.Text = Math.Round(GetTrimPercentage(Trim.Value), 2).ToString + "% - (" + Trim.Value.ToString + ")"
+
+        Catch ex As FSUIPC.FSUIPCException
+            Console.WriteLine($"Error FSUIPC en bucle principal: {ex.FSUIPCErrorCode} - {ex.Message}")
+            HandleFSUIPCDisconnection()
+
+        Catch ex As Exception
+            Console.WriteLine($"Error general en bucle principal: {ex.Message}")
+            HandleFSUIPCDisconnection()
+        End Try
+    End Sub
+
+    Private Sub HandleFSUIPCDisconnection()
+        ' Manejar desconexión de FSUIPC
+        PConection.Image = My.Resources.Red
+        Iniciado = False
+        Button1.Text = Button1.Text.Replace("ON", "OFF")
+        FSUIPC_Main.Stop()
+        keyHook.UnregisterKeyPresses()
+        FSUIPC_TConnect.Start()
+
+        Console.WriteLine("Conexión FSUIPC perdida - Reintentando...")
+    End Sub
+
+#End Region
+
 #Region " Controls "
+
+#Region " PConection Click "
+
+    Private Sub PConection_Click(sender As Object, e As EventArgs) Handles PConection.Click
+        ' Al hacer click en el indicador de conexión, forzar reconexión
+        If Not FSUIPC.FSUIPCConnection.IsOpen Then
+            Console.WriteLine("Intentando reconectar manualmente...")
+            ForceReconnect()
+        Else
+            Console.WriteLine("FSUIPC ya está conectado")
+        End If
+    End Sub
+
+#End Region
 
 #Region " TTexto "
 
@@ -144,7 +258,6 @@ Public Class FMenu
         If TTexto.Text = "" Then TTexto.Text = 0
         Final_VerticalSpeed = TTexto.Text
         PIDController2.SetPoint = Final_VerticalSpeed
-        'PIDController.ProcessVariable = MSFS_VerticalSpeed
         If TTexto.Text = "0" Then
             If Iniciado = True Then Button1.Text = "Trim-Zero ON" Else Button1.Text = "Trim-Zero OFF"
             Mode = "TrimZero"
@@ -159,7 +272,11 @@ Public Class FMenu
 #Region " Button1 "
 
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
-        If FSUIPC.FSUIPCConnection.IsOpen = False Then Exit Sub
+        If FSUIPC.FSUIPCConnection.IsOpen = False Then
+            Console.WriteLine("No se puede activar: FSUIPC no conectado")
+            Exit Sub
+        End If
+
         If Iniciado = False Then
             Iniciado = True
             If TTexto.Text = "0" Then Button1.Text = "Trim-Zero ON" Else Button1.Text = "Trim-Auto ON"
@@ -174,6 +291,100 @@ Public Class FMenu
 
 #End Region
 
+#Region " Check Administrator Privileges "
+
+    Private Sub CheckAdministratorPrivileges()
+        Try
+            Dim identity As Security.Principal.WindowsIdentity = Security.Principal.WindowsIdentity.GetCurrent()
+            Dim principal As New Security.Principal.WindowsPrincipal(identity)
+
+            If principal.IsInRole(Security.Principal.WindowsBuiltInRole.Administrator) Then
+                Console.WriteLine("✓ Aplicación ejecutándose como Administrador")
+            Else
+                Console.WriteLine("⚠ ADVERTENCIA: La aplicación NO se está ejecutando como Administrador")
+                Console.WriteLine("  Esto puede causar problemas de conexión con FSUIPC")
+                Console.WriteLine("  Reinicia la aplicación como Administrador")
+
+                ' Opcional: Mostrar un mensaje al usuario
+                MessageBox.Show("ADVERTENCIA: La aplicación no se está ejecutando como Administrador." & vbCrLf &
+                              "Esto puede causar problemas de conexión con FSUIPC." & vbCrLf & vbCrLf &
+                              "Se recomienda reiniciar la aplicación como Administrador.",
+                              "Permisos Insuficientes",
+                              MessageBoxButtons.OK,
+                              MessageBoxIcon.Warning)
+            End If
+        Catch ex As Exception
+            Console.WriteLine($"Error verificando permisos de administrador: {ex.Message}")
+        End Try
+    End Sub
+
+#End Region
+
+#Region " Public Methods for Hook "
+
+    Public Sub SetTrimZero()
+        If Not FSUIPC.FSUIPCConnection.IsOpen Then
+            Console.WriteLine("No se puede activar Trim-Zero: FSUIPC no conectado")
+            Return
+        End If
+
+        Mode = "TrimZero"
+        Final_VerticalSpeed = 0
+        TTexto.Text = "0"
+        PIDController2.SetPoint = Final_VerticalSpeed
+        Button1.Text = "Trim-Zero ON"
+        If Iniciado = False Then Iniciado = True : Iniciar()
+    End Sub
+
+    Public Sub SetTrimAuto()
+        If Not FSUIPC.FSUIPCConnection.IsOpen Then
+            Console.WriteLine("No se puede activar Trim-Auto: FSUIPC no conectado")
+            Return
+        End If
+
+        Mode = "TrimAuto"
+        Final_VerticalSpeed = MSFS_VerticalSpeed
+        TTexto.Text = Math.Round(Final_VerticalSpeed).ToString()
+        PIDController2.SetPoint = Final_VerticalSpeed
+        Button1.Text = "Trim-Auto ON"
+        If Iniciado = False Then Iniciado = True : Iniciar()
+    End Sub
+
+    Public Sub StopTrim()
+        Iniciado = False
+        If Mode = "TrimZero" Then
+            Button1.Text = "Trim-Zero OFF"
+        Else
+            Button1.Text = "Trim-Auto OFF"
+        End If
+    End Sub
+
+    Public ReadOnly Property IsStarted() As Boolean
+        Get
+            Return Iniciado
+        End Get
+    End Property
+
+    Public ReadOnly Property CurrentMode() As String
+        Get
+            Return Mode
+        End Get
+    End Property
+
+    Public ReadOnly Property IsConnectedToFSUIPC() As Boolean
+        Get
+            Return FSUIPC.FSUIPCConnection.IsOpen
+        End Get
+    End Property
+
+    Public Sub ForceReconnect()
+        ' Forzar reconexión a FSUIPC
+        Console.WriteLine("Forzando reconexión a FSUIPC...")
+        FSUIPC_Main.Stop()
+        keyHook.UnregisterKeyPresses()
+        FSUIPC_TConnect.Start()
+    End Sub
+
 #End Region
 
 #Region " Iniciar "
@@ -185,16 +396,6 @@ Public Class FMenu
         PIDController.ProcessVariable = MSFS_VerticalSpeed
 
         While Iniciado = True
-
-            '79 Steps
-
-            'Dim ControlOutput As Double
-            'Dim ControlOutputRounded As Short
-
-            'controlOutput = PIDController.ControlOutput
-            'Dim controlOutputRounded As Int16 = CShort(Math.Round(controlOutput / 79.0) * 79)
-            'TrimFinal += controlOutputRounded
-
             Dim ControlOutput As Double = PIDController.ControlOutput
 
             Dim PotentialControlOutput As Integer = CInt(Math.Round(ControlOutput))
@@ -222,10 +423,6 @@ Public Class FMenu
             Threading.Thread.Sleep(50)
         End While
     End Sub
-
-#End Region
-
-#Region " Iniciar "
 
     Private Sub Iniciar()
         ' Ajustar la velocidad vertical deseada

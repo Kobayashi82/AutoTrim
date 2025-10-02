@@ -85,7 +85,14 @@ Public Class PIDController2
     Private _derivative As Double
     Private _velocities As New Queue(Of Double)(2)
 
-    Public SetPoint As Double
+    Public Property SetPoint As Double
+        Get
+            Return _setPoint
+        End Get
+        Set(value As Double)
+            _setPoint = value
+        End Set
+    End Property
 
     Public Sub New(Kp As Double, Ki As Double, Kd As Double)
         _Kp = Kp : _Ki = Ki : _Kd = Kd
@@ -99,10 +106,6 @@ Public Class PIDController2
 
         Dim velocitiesArray = _velocities.ToArray()
         _error = (velocitiesArray(1) - velocitiesArray(0)) + 0.01 * (velocidadVerticalActual - _setPoint)
-        'FMenu.TDiff.Text = (velocitiesArray(1) - velocitiesArray(0)).ToString + " - (" + _error.ToString + ")"
-        'FMenu.TDiff.Text = _error.ToString
-
-
 
         _integral += _error
         _derivative = _error - _previousError
@@ -112,89 +115,72 @@ Public Class PIDController2
 
         Return output
     End Function
+End Class
 
-#Region " PID Controller "
+Public Class PIDController
 
-    Public Class PIDController
+    Public Property SetPoint As Double
+    Public Property ProcessVariable As Double
+    Public Property Kp As Double
+    Public Property Ki As Double
+    Public Property Kd As Double
+    Public popo As Boolean
 
-#Region " Variables "
+    Private _lastProportional As Double
+    Private _integral As Double
 
-        Public Property SetPoint As Double
-        Public Property ProcessVariable As Double
-        Public Property Kp As Double
-        Public Property Ki As Double
-        Public Property Kd As Double
-        Public popo As Boolean
+    Private _errorList As New List(Of Double)
+    Private _maxErrorListSize As Integer = 50  ' Ajustar según sea necesario
 
-        Private _lastProportional As Double
-        Private _integral As Double
+    Public Sub New(Kp As Double, Ki As Double, Kd As Double)
+        Me.Kp = Kp : Me.Ki = Ki : Me.Kd = Kd
+    End Sub
 
-        Private _errorList As New List(Of Double)
-        Private _maxErrorListSize As Integer = 50  ' Ajustar según sea necesario
+    Public ReadOnly Property ControlOutput As Double
+        Get
+            Dim proportional = SetPoint - ProcessVariable : _integral += proportional
+            Dim derivative = proportional - _lastProportional : _lastProportional = proportional
 
+            If popo = False Then
 
-#Region " Constructor "
+                ' Almacenar error
+                _errorList.Add(Math.Abs(proportional))
+                ' Limitar tamaño de lista de error
+                If _errorList.Count > _maxErrorListSize Then _errorList.RemoveAt(0)
 
-        Public Sub New(Kp As Double, Ki As Double, Kd As Double)
-            Me.Kp = Kp : Me.Ki = Ki : Me.Kd = Kd
-        End Sub
-
-#End Region
-
-#End Region
-
-#Region " Control Output "
-
-        Public ReadOnly Property ControlOutput As Double
-            Get
-                Dim proportional = SetPoint - ProcessVariable : _integral += proportional
-                Dim derivative = proportional - _lastProportional : _lastProportional = proportional
-
-                If popo = False Then
-
-                    ' Almacenar error
-                    _errorList.Add(Math.Abs(proportional))
-                    ' Limitar tamaño de lista de error
-                    If _errorList.Count > _maxErrorListSize Then _errorList.RemoveAt(0)
-
-                    ' Ajustar Kd en función de la desviación estándar de los errores recientes
-                    Dim stdDev As Double = CalculateStdDev(_errorList)
-                    If Not Double.IsNaN(stdDev) Then
-                        Dim deltaKd As Double = stdDev - Kd
-                        Dim maxDeltaKd As Double = Kd * 0.01 ' permitir un cambio máximo del 0.1% por ciclo (0.1 = 10%)
-                        If Math.Abs(deltaKd) > maxDeltaKd Then
-                            deltaKd = Math.Sign(deltaKd) * maxDeltaKd ' limitar el cambio a maxDeltaKd
-                        End If
-                        Kd += deltaKd
-
-                        ' Limitar Kd a un rango específico
-                        Dim lowerLimit As Double = 0.01 ' define tu límite inferior
-                        Dim upperLimit As Double = 8 ' define tu límite superior
-                        If Kd < lowerLimit Then Kd = lowerLimit
-                        If Kd > upperLimit Then Kd = upperLimit
+                ' Ajustar Kd en función de la desviación estándar de los errores recientes
+                Dim stdDev As Double = CalculateStdDev(_errorList)
+                If Not Double.IsNaN(stdDev) Then
+                    Dim deltaKd As Double = stdDev - Kd
+                    Dim maxDeltaKd As Double = Kd * 0.01 ' permitir un cambio máximo del 0.1% por ciclo (0.1 = 10%)
+                    If Math.Abs(deltaKd) > maxDeltaKd Then
+                        deltaKd = Math.Sign(deltaKd) * maxDeltaKd ' limitar el cambio a maxDeltaKd
                     End If
+                    Kd += deltaKd
 
+                    ' Limitar Kd a un rango específico
+                    Dim lowerLimit As Double = 0.01 ' define tu límite inferior
+                    Dim upperLimit As Double = 8 ' define tu límite superior
+                    If Kd < lowerLimit Then Kd = lowerLimit
+                    If Kd > upperLimit Then Kd = upperLimit
                 End If
 
-                'Debug.Print(Kd.ToString)
-                Return Kp * proportional + Ki * _integral + Kd * derivative
-            End Get
-        End Property
-
-        Private Function CalculateStdDev(values As List(Of Double)) As Double
-            Dim ret As Double = 0
-            If values.Count > 1 Then
-                Dim avg As Double = values.Average()
-                Dim sum As Double = values.Sum(Function(d) Math.Pow(d - avg, 2))
-                If sum > 0 Then
-                    ret = Math.Sqrt((sum) / (values.Count - 1))
-                End If
             End If
-            Return ret
-        End Function
 
-#End Region
+            Return Kp * proportional + Ki * _integral + Kd * derivative
+        End Get
+    End Property
 
-    End Class
+    Private Function CalculateStdDev(values As List(Of Double)) As Double
+        Dim ret As Double = 0
+        If values.Count > 1 Then
+            Dim avg As Double = values.Average()
+            Dim sum As Double = values.Sum(Function(d) Math.Pow(d - avg, 2))
+            If sum > 0 Then
+                ret = Math.Sqrt((sum) / (values.Count - 1))
+            End If
+        End If
+        Return ret
+    End Function
 
-#End Region
+End Class

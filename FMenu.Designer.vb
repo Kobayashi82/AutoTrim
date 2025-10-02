@@ -88,7 +88,7 @@ Partial Class FMenu
         '
         'PConection
         '
-        Me.PConection.Cursor = System.Windows.Forms.Cursors.Default
+        Me.PConection.Cursor = System.Windows.Forms.Cursors.Hand
         Me.PConection.Image = CType(resources.GetObject("PConection.Image"), System.Drawing.Image)
         Me.PConection.Location = New System.Drawing.Point(12, 12)
         Me.PConection.Name = "PConection"

@@ -16,7 +16,7 @@
             Quite este elemento si la aplicación necesita esta virtualización para la compatibilidad
             con versiones anteriores.
         -->
-        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
       </requestedPrivileges>
     </security>
   </trustInfo>
@@ -31,23 +31,26 @@
       <!--<supportedOS Id="{e2011457-1546-43c5-a5fe-008deee3d3f0}" />-->
 
       <!-- Windows 7 -->
-      <!--<supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}" />-->
+      <supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}" />
 
       <!-- Windows 8 -->
-      <!--<supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}" />-->
+      <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}" />
 
       <!-- Windows 8.1 -->
-      <!--<supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}" />-->
+      <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}" />
 
       <!-- Windows 10 -->
-      <!--<supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />-->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+
+      <!-- Windows 11 -->
+      <supportedOS Id="{ca2f6123-2c62-4ec9-b980-1765d5e11ecc}" />
 
     </application>
   </compatibility>
 
   <!-- Indica que la aplicación tiene reconocimiento de PPP y Windows no la escalará de forma automática a
-       PPP superiores. Las aplicaciones de Windows Presentation Foundation (WPF) tienen reconocimiento de PPP automático y no necesitan 
-       participar. Las aplicaciones de Windows Forms destinadas a .NET Framework 4.6 que participan en esta configuración, también 
+       PPP superiores. Las aplicaciones de Windows Presentation Foundation (WPF) tienen reconocimiento de PPP automático y no necesitan 
+       participar. Las aplicaciones de Windows Forms destinadas a .NET Framework 4.6 que participan en esta configuración, también 
        deben establecer la configuración "EnableWindowsFormsHighDpiAutoResizing" en "true" en app.config. 
        
        Hace que la aplicación sea compatible con rutas de acceso largas. Consulte https://docs.microsoft.com/windows/win32/fileio/maximum-file-path-limitation -->
@@ -61,7 +64,6 @@
   -->
 
   <!-- Habilitar los temas para los controles y cuadros de diálogo comunes de Windows (Windows XP y versiones posteriores) -->
-  <!--
   <dependency>
     <dependentAssembly>
       <assemblyIdentity
@@ -74,6 +76,5 @@
         />
     </dependentAssembly>
   </dependency>
-  -->
 
 </assembly>

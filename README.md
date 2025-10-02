@@ -3,7 +3,7 @@
 ![MSFS 2020](https://img.shields.io/badge/MSFS-2020-blue?style=for-the-badge)
 ![PID Controller](https://img.shields.io/badge/PID-Controller-green?style=for-the-badge)
 ![Arduino Integration](https://img.shields.io/badge/Arduino-Integration-teal?style=for-the-badge)
-![C Language](https://img.shields.io/badge/Language-C-red?style=for-the-badge)
+![C Language](https://img.shields.io/badge/Language-VB.Net-red?style=for-the-badge)
 
 *Sistema automático de control de trim para Microsoft Flight Simulator 2020*
 
