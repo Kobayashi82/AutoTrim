@@ -61,36 +61,6 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Busca un recurso adaptado de tipo System.Drawing.Icon similar a (Icono).
-        '''</summary>
-        Friend ReadOnly Property BNew() As System.Drawing.Icon
-            Get
-                Dim obj As Object = ResourceManager.GetObject("BNew", resourceCulture)
-                Return CType(obj,System.Drawing.Icon)
-            End Get
-        End Property
-        
-        '''<summary>
-        '''  Busca un recurso adaptado de tipo System.Drawing.Icon similar a (Icono).
-        '''</summary>
-        Friend ReadOnly Property BSettings() As System.Drawing.Icon
-            Get
-                Dim obj As Object = ResourceManager.GetObject("BSettings", resourceCulture)
-                Return CType(obj,System.Drawing.Icon)
-            End Get
-        End Property
-        
-        '''<summary>
-        '''  Busca un recurso adaptado de tipo System.Byte[].
-        '''</summary>
-        Friend ReadOnly Property fsuipcClient() As Byte()
-            Get
-                Dim obj As Object = ResourceManager.GetObject("fsuipcClient", resourceCulture)
-                Return CType(obj,Byte())
-            End Get
-        End Property
-        
-        '''<summary>
         '''  Busca un recurso adaptado de tipo System.Drawing.Bitmap.
         '''</summary>
         Friend ReadOnly Property Green() As System.Drawing.Bitmap
