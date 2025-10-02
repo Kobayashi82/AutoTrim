@@ -31,15 +31,6 @@ Public Class FMenu
     Private Sub FMenu_Load(sender As Object, e As EventArgs) Handles Me.Load
         Text = "AutoTrim " + Version
 
-        Try
-            Dim principal As New Security.Principal.WindowsPrincipal(Security.Principal.WindowsIdentity.GetCurrent())
-
-            If (Not principal.IsInRole(Security.Principal.WindowsBuiltInRole.Administrator)) Then
-                MessageBox.Show("La aplicación debe ejecutarse como Administrador", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning)
-                End
-            End If
-        Catch : End Try
-
         AddHandler FSUIPC_TConnect.Tick, AddressOf FSUIPC_TConnect_Tick
         AddHandler FSUIPC_Main.Tick, AddressOf FSUIPC_Main_Tick
         Height = 216
