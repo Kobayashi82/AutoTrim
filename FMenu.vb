@@ -21,6 +21,8 @@
     Dim Mode As String
     Dim Iniciado As Boolean
 
+    Private WithEvents Motor As ControladorMotor
+
 #End Region
 
 #Region " Constructor "
@@ -55,6 +57,21 @@
     Private Sub FMenu_Load(sender As Object, e As EventArgs) Handles Me.Load
         Text = "AutoTrim " + Version
         FSUIPCMgr.Connect()
+
+        ' Crear instancia del controlador
+        Motor = New ControladorMotor()
+
+        ' Suscribirse a eventos
+        AddHandler Motor.MensajeRecibido, AddressOf Motor_MensajeRecibido
+        AddHandler Motor.ErrorConexion, AddressOf Motor_ErrorConexion
+        AddHandler Motor.EstadoConexion, AddressOf Motor_EstadoConexion
+
+        ' Cargar puertos disponibles en un ComboBox (opcional)
+        Dim puertos = ControladorMotor.ObtenerPuertosDisponibles()
+        cmbPuertos.Items.AddRange(puertos)
+        If cmbPuertos.Items.Count > 0 Then
+            cmbPuertos.SelectedIndex = 0
+        End If
     End Sub
 
     Private Sub HTexto_KeyPress(sender As Object, e As KeyPressEventArgs) Handles HTexto.KeyPress
@@ -74,6 +91,63 @@
     End Sub
 
 #End Region
+
+    ' Botón conectar
+    Private Sub btnConectar_Click(sender As Object, e As EventArgs) Handles btnConectar.Click
+        If Motor.Conectar("COM3") Then ' O usar cmbPuertos.SelectedItem.ToString()
+            Motor.EncenderMotor()
+        End If
+    End Sub
+
+    ' Botón desconectar
+    Private Sub btnDesconectar_Click(sender As Object, e As EventArgs) Handles btnDesconectar.Click
+        Motor.Desconectar()
+    End Sub
+
+    ' Girar horario mientras se mantiene pulsado
+    Private Sub btnHorario_MouseDown(sender As Object, e As MouseEventArgs) Handles btnHorario.MouseDown
+        Motor.GirarHorario()
+    End Sub
+
+    Private Sub btnHorario_MouseUp(sender As Object, e As MouseEventArgs) Handles btnHorario.MouseUp
+        Motor.DetenerMotor()
+    End Sub
+
+    ' Girar antihorario mientras se mantiene pulsado
+    Private Sub btnAntihorario_MouseDown(sender As Object, e As MouseEventArgs) Handles btnAntihorario.MouseDown
+        Motor.GirarAntihorario()
+    End Sub
+
+    Private Sub btnAntihorario_MouseUp(sender As Object, e As MouseEventArgs) Handles btnAntihorario.MouseUp
+        Motor.DetenerMotor()
+    End Sub
+
+    ' Cambiar velocidad (ejemplo con un TrackBar)
+    Private Sub trackVelocidad_Scroll(sender As Object, e As EventArgs) Handles trackVelocidad.Scroll
+        Motor.CambiarVelocidad(trackVelocidad.Value)
+    End Sub
+
+    ' === MANEJADORES DE EVENTOS ===
+
+    Private Sub Motor_MensajeRecibido(mensaje As String)
+        ' Mostrar mensajes del Arduino (invocado desde otro hilo)
+        If Me.InvokeRequired Then
+            Me.Invoke(Sub() txtLog.AppendText(mensaje & vbCrLf))
+        Else
+            txtLog.AppendText(mensaje & vbCrLf)
+        End If
+    End Sub
+
+    Private Sub Motor_ErrorConexion(mensaje As String)
+        MessageBox.Show(mensaje, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+    End Sub
+
+    Private Sub Motor_EstadoConexion(conectado As Boolean)
+        lblEstado.Text = If(conectado, "Conectado", "Desconectado")
+        lblEstado.ForeColor = If(conectado, Color.Green, Color.Red)
+    End Sub
+
+
 
 #Region " Controls "
 
@@ -291,6 +365,11 @@
             StopControl()
             Button1.Text = Button1.Text.Replace("ON", "OFF")
         End Try
+    End Sub
+
+    Private Sub Pasos_Click(sender As Object, e As EventArgs) Handles Pasos.Click
+        If (txtControl.Text = "") Then Return
+        Motor.PasosMotor(txtControl.Text)
     End Sub
 
 #End Region

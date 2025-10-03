@@ -101,6 +101,7 @@
     <Import Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Arduino.vb" />
     <Compile Include="BonFire.vb">
       <SubType>Component</SubType>
     </Compile>
