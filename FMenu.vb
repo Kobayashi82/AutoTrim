@@ -1,4 +1,5 @@
-﻿Public Class FMenu
+﻿
+Public Class FMenu
 
 #Region " Variables "
 
@@ -21,7 +22,7 @@
     Dim Mode As String
     Dim Iniciado As Boolean
 
-    Private WithEvents Motor As ControladorMotor
+    Private WithEvents Motor As MotorController
 
 #End Region
 
@@ -58,20 +59,15 @@
         Text = "AutoTrim " + Version
         FSUIPCMgr.Connect()
 
-        ' Crear instancia del controlador
-        Motor = New ControladorMotor()
+        Motor = New MotorController()
 
-        ' Suscribirse a eventos
-        AddHandler Motor.MensajeRecibido, AddressOf Motor_MensajeRecibido
-        AddHandler Motor.ErrorConexion, AddressOf Motor_ErrorConexion
-        AddHandler Motor.EstadoConexion, AddressOf Motor_EstadoConexion
+        AddHandler Motor.DataReceived, AddressOf Motor_DataReceived
+        AddHandler Motor.ConnectionError, AddressOf Motor_ConnectionError
+        AddHandler Motor.ConnectionStatus, AddressOf Motor_ConnectionStatus
 
-        ' Cargar puertos disponibles en un ComboBox (opcional)
-        Dim puertos = ControladorMotor.ObtenerPuertosDisponibles()
-        cmbPuertos.Items.AddRange(puertos)
-        If cmbPuertos.Items.Count > 0 Then
-            cmbPuertos.SelectedIndex = 0
-        End If
+        cmbPuertos.Items.AddRange(MotorController.Ports())
+        If (cmbPuertos.Items.Count = 0) Then cmbPuertos.Items.Add("No ports found")
+        cmbPuertos.SelectedIndex = 0
     End Sub
 
     Private Sub HTexto_KeyPress(sender As Object, e As KeyPressEventArgs) Handles HTexto.KeyPress
@@ -81,6 +77,7 @@
     Protected Overrides Sub OnClosed(e As EventArgs)
         Iniciado = False
         PIDTimer.Stop()
+        Motor.Disconnect()
         Hook.UnregisterKeyPresses()
         FSUIPCMgr.Dispose()
 
@@ -91,63 +88,6 @@
     End Sub
 
 #End Region
-
-    ' Botón conectar
-    Private Sub btnConectar_Click(sender As Object, e As EventArgs) Handles btnConectar.Click
-        If Motor.Conectar("COM3") Then ' O usar cmbPuertos.SelectedItem.ToString()
-            Motor.EncenderMotor()
-        End If
-    End Sub
-
-    ' Botón desconectar
-    Private Sub btnDesconectar_Click(sender As Object, e As EventArgs) Handles btnDesconectar.Click
-        Motor.Desconectar()
-    End Sub
-
-    ' Girar horario mientras se mantiene pulsado
-    Private Sub btnHorario_MouseDown(sender As Object, e As MouseEventArgs) Handles btnHorario.MouseDown
-        Motor.GirarHorario()
-    End Sub
-
-    Private Sub btnHorario_MouseUp(sender As Object, e As MouseEventArgs) Handles btnHorario.MouseUp
-        Motor.DetenerMotor()
-    End Sub
-
-    ' Girar antihorario mientras se mantiene pulsado
-    Private Sub btnAntihorario_MouseDown(sender As Object, e As MouseEventArgs) Handles btnAntihorario.MouseDown
-        Motor.GirarAntihorario()
-    End Sub
-
-    Private Sub btnAntihorario_MouseUp(sender As Object, e As MouseEventArgs) Handles btnAntihorario.MouseUp
-        Motor.DetenerMotor()
-    End Sub
-
-    ' Cambiar velocidad (ejemplo con un TrackBar)
-    Private Sub trackVelocidad_Scroll(sender As Object, e As EventArgs) Handles trackVelocidad.Scroll
-        Motor.CambiarVelocidad(trackVelocidad.Value)
-    End Sub
-
-    ' === MANEJADORES DE EVENTOS ===
-
-    Private Sub Motor_MensajeRecibido(mensaje As String)
-        ' Mostrar mensajes del Arduino (invocado desde otro hilo)
-        If Me.InvokeRequired Then
-            Me.Invoke(Sub() txtLog.AppendText(mensaje & vbCrLf))
-        Else
-            txtLog.AppendText(mensaje & vbCrLf)
-        End If
-    End Sub
-
-    Private Sub Motor_ErrorConexion(mensaje As String)
-        MessageBox.Show(mensaje, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-    End Sub
-
-    Private Sub Motor_EstadoConexion(conectado As Boolean)
-        lblEstado.Text = If(conectado, "Conectado", "Desconectado")
-        lblEstado.ForeColor = If(conectado, Color.Green, Color.Red)
-    End Sub
-
-
 
 #Region " Controls "
 
@@ -308,7 +248,7 @@
 
 #End Region
 
-#Region " Control PID "
+#Region " PID "
 
 #Region " Start "
 
@@ -332,7 +272,7 @@
 
 #End Region
 
-#Region " Hook "
+#Region " Timer "
 
     Private Sub PIDTimer_Tick(sender As Object, e As EventArgs) Handles PIDTimer.Tick
         If (Not Iniciado OrElse Not FSUIPCMgr.IsConnected OrElse ComplexPIDCtrl Is Nothing) Then
@@ -367,12 +307,72 @@
         End Try
     End Sub
 
-    Private Sub Pasos_Click(sender As Object, e As EventArgs) Handles Pasos.Click
-        If (txtControl.Text = "") Then Return
-        Motor.PasosMotor(txtControl.Text)
-    End Sub
+#End Region
 
 #End Region
+
+#Region " Motor "
+
+    ' Botón conectar
+    Private Sub btnConectar_Click(sender As Object, e As EventArgs) Handles btnConectar.Click
+        If (cmbPuertos.SelectedItem Is Nothing OrElse cmbPuertos.SelectedItem.ToString() = "No ports found") Then
+            MessageBox.Show("No valid COM port selected.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        Else
+            Motor.Connect(cmbPuertos.SelectedItem.ToString())
+        End If
+    End Sub
+
+    ' Botón desconectar
+    Private Sub btnDesconectar_Click(sender As Object, e As EventArgs) Handles btnDesconectar.Click
+        Motor.Disconnect()
+    End Sub
+
+    ' Girar horario mientras se mantiene pulsado
+    Private Sub btnTrimUpContinuous_MouseDown(sender As Object, e As MouseEventArgs) Handles btnTrimUpContinuous.MouseDown
+        Motor.TrimUpContinuous(trackVelocidad.Value)
+    End Sub
+
+    Private Sub btnTrimUpContinuous_MouseUp(sender As Object, e As MouseEventArgs) Handles btnTrimUpContinuous.MouseUp
+        Motor.DetenerMotor()
+    End Sub
+
+    ' Girar antihorario mientras se mantiene pulsado
+    Private Sub btnTrimDownContinuous_MouseDown(sender As Object, e As MouseEventArgs) Handles btnTrimDownContinuous.MouseDown
+        Motor.TrimDownContinuous(trackVelocidad.Value)
+    End Sub
+
+    Private Sub btnTrimDownContinuous_MouseUp(sender As Object, e As MouseEventArgs) Handles btnTrimDownContinuous.MouseUp
+        Motor.DetenerMotor()
+    End Sub
+
+    Private Sub TrimUp_Click(sender As Object, e As EventArgs) Handles btnTrimUp.Click
+        If (txtControl.Text = "") Then Return
+        Motor.TrimDown(txtControl.Text, trackVelocidad.Value)
+    End Sub
+
+    Private Sub TrimDown_Click(sender As Object, e As EventArgs) Handles btnTrimDown.Click
+        If (txtControl.Text = "") Then Return
+        Motor.TrimDown(txtControl.Text, trackVelocidad.Value)
+    End Sub
+
+    ' === MANEJADORES DE EVENTOS ===
+
+    Private Sub Motor_DataReceived(msg As String)
+        If InvokeRequired Then
+            Invoke(Sub() txtLog.AppendText(msg & vbCrLf))
+        Else
+            txtLog.AppendText(msg & vbCrLf)
+        End If
+    End Sub
+
+    Private Sub Motor_ConnectionError(msg As String)
+        MessageBox.Show(msg, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+    End Sub
+
+    Private Sub Motor_ConnectionStatus(connected As Boolean)
+        lblEstado.Text = If(connected, "Connected", "Disconnected")
+        lblEstado.ForeColor = If(connected, Color.Green, Color.DarkRed)
+    End Sub
 
 #End Region
 

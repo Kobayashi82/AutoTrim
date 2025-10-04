@@ -40,12 +40,13 @@ Partial Class FMenu
         Me.txtLog = New System.Windows.Forms.TextBox()
         Me.lblEstado = New System.Windows.Forms.Label()
         Me.cmbPuertos = New System.Windows.Forms.ComboBox()
-        Me.btnDesconectar = New AutoTrim.BonfireButton()
-        Me.btnAntiHorario = New AutoTrim.BonfireButton()
-        Me.btnHorario = New AutoTrim.BonfireButton()
-        Me.btnConectar = New AutoTrim.BonfireButton()
-        Me.Pasos = New AutoTrim.BonfireButton()
         Me.txtControl = New System.Windows.Forms.TextBox()
+        Me.btnDesconectar = New AutoTrim.BonfireButton()
+        Me.btnTrimDown = New AutoTrim.BonfireButton()
+        Me.btnTrimUp = New AutoTrim.BonfireButton()
+        Me.btnTrimDownContinuous = New AutoTrim.BonfireButton()
+        Me.btnTrimUpContinuous = New AutoTrim.BonfireButton()
+        Me.btnConectar = New AutoTrim.BonfireButton()
         CType(Me.PConection, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.trackVelocidad, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
@@ -207,17 +208,18 @@ Partial Class FMenu
         '
         'trackVelocidad
         '
-        Me.trackVelocidad.Location = New System.Drawing.Point(311, 119)
+        Me.trackVelocidad.Location = New System.Drawing.Point(308, 143)
         Me.trackVelocidad.Maximum = 5000
-        Me.trackVelocidad.Minimum = 100
+        Me.trackVelocidad.Minimum = 50
         Me.trackVelocidad.Name = "trackVelocidad"
         Me.trackVelocidad.Size = New System.Drawing.Size(228, 45)
         Me.trackVelocidad.TabIndex = 88
-        Me.trackVelocidad.Value = 100
+        Me.trackVelocidad.TickStyle = System.Windows.Forms.TickStyle.None
+        Me.trackVelocidad.Value = 50
         '
         'txtLog
         '
-        Me.txtLog.Location = New System.Drawing.Point(311, 166)
+        Me.txtLog.Location = New System.Drawing.Point(308, 175)
         Me.txtLog.Multiline = True
         Me.txtLog.Name = "txtLog"
         Me.txtLog.Size = New System.Drawing.Size(228, 89)
@@ -225,21 +227,30 @@ Partial Class FMenu
         '
         'lblEstado
         '
-        Me.lblEstado.AutoSize = True
-        Me.lblEstado.ForeColor = System.Drawing.SystemColors.Control
-        Me.lblEstado.Location = New System.Drawing.Point(398, 11)
+        Me.lblEstado.ForeColor = System.Drawing.Color.DarkRed
+        Me.lblEstado.Location = New System.Drawing.Point(425, 12)
         Me.lblEstado.Name = "lblEstado"
-        Me.lblEstado.Size = New System.Drawing.Size(39, 13)
+        Me.lblEstado.Size = New System.Drawing.Size(111, 13)
         Me.lblEstado.TabIndex = 90
-        Me.lblEstado.Text = "Label6"
+        Me.lblEstado.Text = "Disconnected"
+        Me.lblEstado.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
         '
         'cmbPuertos
         '
         Me.cmbPuertos.FormattingEnabled = True
-        Me.cmbPuertos.Location = New System.Drawing.Point(80, 188)
+        Me.cmbPuertos.Location = New System.Drawing.Point(308, 9)
         Me.cmbPuertos.Name = "cmbPuertos"
-        Me.cmbPuertos.Size = New System.Drawing.Size(179, 21)
+        Me.cmbPuertos.Size = New System.Drawing.Size(111, 21)
         Me.cmbPuertos.TabIndex = 91
+        '
+        'txtControl
+        '
+        Me.txtControl.Location = New System.Drawing.Point(384, 116)
+        Me.txtControl.Name = "txtControl"
+        Me.txtControl.Size = New System.Drawing.Size(76, 20)
+        Me.txtControl.TabIndex = 92
+        Me.txtControl.Text = "200"
+        Me.txtControl.TextAlign = System.Windows.Forms.HorizontalAlignment.Center
         '
         'btnDesconectar
         '
@@ -247,38 +258,64 @@ Partial Class FMenu
         Me.btnDesconectar.Cursor = System.Windows.Forms.Cursors.Hand
         Me.btnDesconectar.Font = New System.Drawing.Font("Verdana", 8.0!)
         Me.btnDesconectar.Image = Nothing
-        Me.btnDesconectar.Location = New System.Drawing.Point(428, 39)
+        Me.btnDesconectar.Location = New System.Drawing.Point(425, 36)
         Me.btnDesconectar.Name = "btnDesconectar"
         Me.btnDesconectar.RoundedCorners = False
         Me.btnDesconectar.Size = New System.Drawing.Size(111, 34)
         Me.btnDesconectar.TabIndex = 87
-        Me.btnDesconectar.Text = "Desconectar"
+        Me.btnDesconectar.Text = "Disconnect"
         '
-        'btnAntiHorario
+        'btnTrimDown
         '
-        Me.btnAntiHorario.ButtonStyle = AutoTrim.BonfireButton.Style.Blue
-        Me.btnAntiHorario.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.btnAntiHorario.Font = New System.Drawing.Font("Verdana", 8.0!)
-        Me.btnAntiHorario.Image = Nothing
-        Me.btnAntiHorario.Location = New System.Drawing.Point(428, 79)
-        Me.btnAntiHorario.Name = "btnAntiHorario"
-        Me.btnAntiHorario.RoundedCorners = False
-        Me.btnAntiHorario.Size = New System.Drawing.Size(111, 34)
-        Me.btnAntiHorario.TabIndex = 87
-        Me.btnAntiHorario.Text = "Anti Horario"
+        Me.btnTrimDown.ButtonStyle = AutoTrim.BonfireButton.Style.Blue
+        Me.btnTrimDown.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.btnTrimDown.Font = New System.Drawing.Font("Verdana", 8.0!)
+        Me.btnTrimDown.Image = Nothing
+        Me.btnTrimDown.Location = New System.Drawing.Point(466, 116)
+        Me.btnTrimDown.Name = "btnTrimDown"
+        Me.btnTrimDown.RoundedCorners = False
+        Me.btnTrimDown.Size = New System.Drawing.Size(70, 21)
+        Me.btnTrimDown.TabIndex = 87
+        Me.btnTrimDown.Text = "Trim Down"
         '
-        'btnHorario
+        'btnTrimUp
         '
-        Me.btnHorario.ButtonStyle = AutoTrim.BonfireButton.Style.Blue
-        Me.btnHorario.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.btnHorario.Font = New System.Drawing.Font("Verdana", 8.0!)
-        Me.btnHorario.Image = Nothing
-        Me.btnHorario.Location = New System.Drawing.Point(311, 79)
-        Me.btnHorario.Name = "btnHorario"
-        Me.btnHorario.RoundedCorners = False
-        Me.btnHorario.Size = New System.Drawing.Size(111, 34)
-        Me.btnHorario.TabIndex = 87
-        Me.btnHorario.Text = "Horario"
+        Me.btnTrimUp.ButtonStyle = AutoTrim.BonfireButton.Style.Blue
+        Me.btnTrimUp.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.btnTrimUp.Font = New System.Drawing.Font("Verdana", 8.0!)
+        Me.btnTrimUp.Image = Nothing
+        Me.btnTrimUp.Location = New System.Drawing.Point(308, 116)
+        Me.btnTrimUp.Name = "btnTrimUp"
+        Me.btnTrimUp.RoundedCorners = False
+        Me.btnTrimUp.Size = New System.Drawing.Size(70, 21)
+        Me.btnTrimUp.TabIndex = 87
+        Me.btnTrimUp.Text = "Trim Up"
+        '
+        'btnTrimDownContinuous
+        '
+        Me.btnTrimDownContinuous.ButtonStyle = AutoTrim.BonfireButton.Style.Blue
+        Me.btnTrimDownContinuous.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.btnTrimDownContinuous.Font = New System.Drawing.Font("Verdana", 8.0!)
+        Me.btnTrimDownContinuous.Image = Nothing
+        Me.btnTrimDownContinuous.Location = New System.Drawing.Point(425, 76)
+        Me.btnTrimDownContinuous.Name = "btnTrimDownContinuous"
+        Me.btnTrimDownContinuous.RoundedCorners = False
+        Me.btnTrimDownContinuous.Size = New System.Drawing.Size(111, 34)
+        Me.btnTrimDownContinuous.TabIndex = 87
+        Me.btnTrimDownContinuous.Text = "Trim Down Cont."
+        '
+        'btnTrimUpContinuous
+        '
+        Me.btnTrimUpContinuous.ButtonStyle = AutoTrim.BonfireButton.Style.Blue
+        Me.btnTrimUpContinuous.Cursor = System.Windows.Forms.Cursors.Hand
+        Me.btnTrimUpContinuous.Font = New System.Drawing.Font("Verdana", 8.0!)
+        Me.btnTrimUpContinuous.Image = Nothing
+        Me.btnTrimUpContinuous.Location = New System.Drawing.Point(308, 76)
+        Me.btnTrimUpContinuous.Name = "btnTrimUpContinuous"
+        Me.btnTrimUpContinuous.RoundedCorners = False
+        Me.btnTrimUpContinuous.Size = New System.Drawing.Size(111, 34)
+        Me.btnTrimUpContinuous.TabIndex = 87
+        Me.btnTrimUpContinuous.Text = "Trim Up Cont."
         '
         'btnConectar
         '
@@ -286,49 +323,29 @@ Partial Class FMenu
         Me.btnConectar.Cursor = System.Windows.Forms.Cursors.Hand
         Me.btnConectar.Font = New System.Drawing.Font("Verdana", 8.0!)
         Me.btnConectar.Image = Nothing
-        Me.btnConectar.Location = New System.Drawing.Point(311, 39)
+        Me.btnConectar.Location = New System.Drawing.Point(308, 36)
         Me.btnConectar.Name = "btnConectar"
         Me.btnConectar.RoundedCorners = False
         Me.btnConectar.Size = New System.Drawing.Size(111, 34)
         Me.btnConectar.TabIndex = 87
-        Me.btnConectar.Text = "Conectar"
-        '
-        'Pasos
-        '
-        Me.Pasos.ButtonStyle = AutoTrim.BonfireButton.Style.Blue
-        Me.Pasos.Cursor = System.Windows.Forms.Cursors.Hand
-        Me.Pasos.Font = New System.Drawing.Font("Verdana", 8.0!)
-        Me.Pasos.Image = Nothing
-        Me.Pasos.Location = New System.Drawing.Point(80, 221)
-        Me.Pasos.Name = "Pasos"
-        Me.Pasos.RoundedCorners = False
-        Me.Pasos.Size = New System.Drawing.Size(111, 34)
-        Me.Pasos.TabIndex = 87
-        Me.Pasos.Text = "Pasos"
-        '
-        'txtControl
-        '
-        Me.txtControl.Location = New System.Drawing.Point(205, 232)
-        Me.txtControl.Name = "txtControl"
-        Me.txtControl.Size = New System.Drawing.Size(80, 20)
-        Me.txtControl.TabIndex = 92
-        Me.txtControl.Text = "MH:200"
+        Me.btnConectar.Text = "Connect"
         '
         'FMenu
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(75, Byte), Integer), CType(CType(75, Byte), Integer))
-        Me.ClientSize = New System.Drawing.Size(640, 276)
+        Me.ClientSize = New System.Drawing.Size(548, 276)
         Me.Controls.Add(Me.txtControl)
         Me.Controls.Add(Me.cmbPuertos)
         Me.Controls.Add(Me.lblEstado)
         Me.Controls.Add(Me.txtLog)
         Me.Controls.Add(Me.trackVelocidad)
         Me.Controls.Add(Me.btnDesconectar)
-        Me.Controls.Add(Me.Pasos)
-        Me.Controls.Add(Me.btnAntiHorario)
-        Me.Controls.Add(Me.btnHorario)
+        Me.Controls.Add(Me.btnTrimDown)
+        Me.Controls.Add(Me.btnTrimUp)
+        Me.Controls.Add(Me.btnTrimDownContinuous)
+        Me.Controls.Add(Me.btnTrimUpContinuous)
         Me.Controls.Add(Me.btnConectar)
         Me.Controls.Add(Me.Button1)
         Me.Controls.Add(Me.PConection)
@@ -373,12 +390,13 @@ Partial Class FMenu
     Friend WithEvents TDiff As Label
     Friend WithEvents btnConectar As BonfireButton
     Friend WithEvents btnDesconectar As BonfireButton
-    Friend WithEvents btnHorario As BonfireButton
-    Friend WithEvents btnAntiHorario As BonfireButton
+    Friend WithEvents btnTrimUpContinuous As BonfireButton
+    Friend WithEvents btnTrimDownContinuous As BonfireButton
     Friend WithEvents trackVelocidad As TrackBar
     Friend WithEvents txtLog As TextBox
     Friend WithEvents lblEstado As Label
     Friend WithEvents cmbPuertos As ComboBox
-    Friend WithEvents Pasos As BonfireButton
+    Friend WithEvents btnTrimUp As BonfireButton
     Friend WithEvents txtControl As TextBox
+    Friend WithEvents btnTrimDown As BonfireButton
 End Class

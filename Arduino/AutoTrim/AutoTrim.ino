@@ -2,110 +2,110 @@
 #define DIR 9
 #define PUL 10
 
-int stepDelay = 150;
+enum MotorState {
+  STOPPED,
+  STEP_MOVE,
+  CONT_MOVE
+};
+
+MotorState status = STOPPED;
+bool direction = LOW;
+int stepRemaining = 0;
+unsigned long pulseLast = 0;
+bool pulseState = LOW;
+int stepDelay = 150; // microseconds
 
 void setup() {
   pinMode(ENA, OUTPUT);
   pinMode(DIR, OUTPUT);
   pinMode(PUL, OUTPUT);
   
-  digitalWrite(ENA, LOW);  // Motor habilitado siempre
+  digitalWrite(ENA, HIGH);  // Disabled
   digitalWrite(DIR, LOW);
   digitalWrite(PUL, LOW);
   
   Serial.begin(9600);
-  Serial.println("Sistema listo");
 }
 
 void loop() {
-  // Leer comandos
+  processCommands();
+  generatePulses();
+}
+
+void processCommands() {
   if (Serial.available() > 0) {
-    String comando = Serial.readStringUntil('\n');
-    comando.trim();
+    String command = Serial.readStringUntil('\n');
+    command.trim();
     
-    procesarComando(comando);
+    if (command == "S") {                                   // Stop
+      stopMotor();
+
+    } else if (command.startsWith("D:")) {                  // Trim Down Continuos
+      int speed = command.substring(2).toInt();
+      if (speed >= 50 && speed <= 5000) stepDelay = speed;
+      moveContinuous(LOW);     
+    } else if (command.startsWith("DS:")) {                 // Trim Down Steps
+      int steps = command.substring(3).toInt();
+      int speed = command.substring(3).toInt();
+      if (speed >= 50 && speed <= 5000) stepDelay = speed;
+      MoveStep(LOW, steps);
+
+    } else if (command.startsWith("U:")) {                  // Trim Up Continuos
+      int speed = command.substring(2).toInt();
+      if (speed >= 50 && speed <= 5000) stepDelay = speed;
+      moveContinuous(HIGH);
+    } else if (command.startsWith("US:")) {                 // Trim Up Steps
+      int steps = command.substring(3).toInt();
+      int speed = command.substring(3).toInt();
+      if (speed >= 50 && speed <= 5000) stepDelay = speed;
+      MoveStep(HIGH, steps);
+     }
   }
 }
 
-void procesarComando(String cmd) {
-  if (cmd == "H") {
-    // Movimiento continuo horario
-    moverContinuo(LOW);
-    Serial.println("Horario continuo");
-    
-  } else if (cmd == "A") {
-    // Movimiento continuo antihorario
-    moverContinuo(HIGH);
-    Serial.println("Antihorario continuo");
-    
-  } else if (cmd.startsWith("MH:")) {
-    // Mover N pasos horario: MH:200
-    int pasos = cmd.substring(3).toInt();
-    moverPasos(LOW, pasos);
-    Serial.print("Movidos ");
-    Serial.print(pasos);
-    Serial.println(" pasos horario");
-    
-  } else if (cmd.startsWith("MA:")) {
-    // Mover N pasos antihorario: MA:200
-    int pasos = cmd.substring(3).toInt();
-    moverPasos(HIGH, pasos);
-    Serial.print("Movidos ");
-    Serial.print(pasos);
-    Serial.println(" pasos antihorario");
-    
-  } else if (cmd.startsWith("SPEED:")) {
-    // Cambiar velocidad: SPEED:200
-    int newSpeed = cmd.substring(6).toInt();
-    if (newSpeed >= 50 && newSpeed <= 5000) {
-      stepDelay = newSpeed;
-      Serial.print("Velocidad: ");
-      Serial.println(stepDelay);
-    }
-    
-  } else {
-    Serial.println("Comando desconocido");
-  }
+void stopMotor() {
+  status = STOPPED;
+  stepRemaining = 0;
+  digitalWrite(PUL, LOW);
+  digitalWrite(ENA, HIGH);
 }
 
-// Mover un número específico de pasos
-void moverPasos(int direccion, int pasos) {
-  digitalWrite(DIR, direccion);
+void moveContinuous(bool dir) {
+  if (status == STOPPED) digitalWrite(ENA, LOW);
   
-  for (int i = 0; i < pasos; i++) {
-    digitalWrite(PUL, HIGH);
-    delayMicroseconds(stepDelay);
-    digitalWrite(PUL, LOW);
-    delayMicroseconds(stepDelay);
-    
-    // Permitir interrumpir con comando 'S'
-    if (Serial.available() > 0) {
-      char c = Serial.read();
-      if (c == 'S') {
-        Serial.println("Movimiento interrumpido");
-        return;
-      }
-    }
-  }
+  direction = dir;
+  digitalWrite(DIR, direction);
+  
+  status = CONT_MOVE;
+  pulseLast = micros();
+  pulseState = LOW;
 }
 
-// Mover continuamente hasta recibir 'S'
-void moverContinuo(int direccion) {
-  digitalWrite(DIR, direccion);
+void MoveStep(bool dir, int steps) {
+  if (status == STOPPED) digitalWrite(ENA, LOW);
   
-  while (true) {
-    digitalWrite(PUL, HIGH);
-    delayMicroseconds(stepDelay);
-    digitalWrite(PUL, LOW);
-    delayMicroseconds(stepDelay);
+  direction = dir;
+  digitalWrite(DIR, direction);
+  
+  stepRemaining = steps;
+  status = STEP_MOVE;
+
+  pulseLast = micros();
+  pulseState = LOW;
+}
+
+void generatePulses() {
+  if (status == STOPPED) return;
+  
+  unsigned long pulseCurr = micros();
+  if (pulseCurr - pulseLast >= stepDelay) {
+    pulseLast = pulseCurr;
+    pulseState = !pulseState;
+    digitalWrite(PUL, pulseState);
     
-    // Verificar si hay comando de parar
-    if (Serial.available() > 0) {
-      char c = Serial.read();
-      if (c == 'S') {
-        Serial.println("Stop");
-        return;
-      }
+    if (!pulseState && status == STEP_MOVE) {
+      stepRemaining--;
+      if (stepRemaining <= 0) stopMotor();
     }
   }
 }

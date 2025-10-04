@@ -1,189 +1,170 @@
-﻿Imports System.IO.Ports
+﻿
+Public Class MotorController
 
-Public Class ControladorMotor
-    Private WithEvents SerialPort As SerialPort
-    Private _conectado As Boolean = False
+#Region " Variables "
 
-    ' Eventos para notificar al formulario
-    Public Event MensajeRecibido(mensaje As String)
-    Public Event ErrorConexion(mensaje As String)
-    Public Event EstadoConexion(conectado As Boolean)
+    Private WithEvents SerialPort As IO.Ports.SerialPort
+    Private _connected As Boolean = False
 
-    ' Propiedades
-    Public ReadOnly Property Conectado As Boolean
-        Get
-            Return _conectado AndAlso SerialPort IsNot Nothing AndAlso SerialPort.IsOpen
-        End Get
-    End Property
+    Public Event DataReceived(msg As String)
+    Public Event ConnectionError(msg As String)
+    Public Event ConnectionStatus(connected As Boolean)
+
+#End Region
+
+#Region " Constructor "
 
     Public Sub New()
-        SerialPort = New SerialPort()
+        SerialPort = New IO.Ports.SerialPort()
         SerialPort.BaudRate = 9600
         SerialPort.DataBits = 8
-        SerialPort.Parity = Parity.None
-        SerialPort.StopBits = StopBits.One
+        SerialPort.Parity = IO.Ports.Parity.None
+        SerialPort.StopBits = IO.Ports.StopBits.One
         SerialPort.ReadTimeout = 500
         SerialPort.WriteTimeout = 500
     End Sub
 
-    ''' <summary>
-    ''' Conecta con el Arduino en el puerto especificado
-    ''' </summary>
-    Public Function Conectar(nombrePuerto As String) As Boolean
-        Try
-            If SerialPort.IsOpen Then
-                SerialPort.Close()
-            End If
+    Public Sub Dispose()
+        Disconnect()
+        If (SerialPort IsNot Nothing) Then SerialPort.Dispose()
+    End Sub
 
-            SerialPort.PortName = nombrePuerto
+#End Region
+
+#Region " Connection "
+
+#Region " Ports "
+
+    Public Shared Function Ports() As String()
+        Return (IO.Ports.SerialPort.GetPortNames())
+    End Function
+
+#End Region
+
+#Region " Connect "
+
+    Public Function Connect(port As String) As Boolean
+        Try
+            If (SerialPort.IsOpen) Then SerialPort.Close()
+
+            SerialPort.PortName = port
             SerialPort.Open()
-            _conectado = True
-            RaiseEvent EstadoConexion(True)
-            Return True
+            _connected = True
+            RaiseEvent ConnectionStatus(True)
+            Return (True)
 
         Catch ex As Exception
-            _conectado = False
-            RaiseEvent ErrorConexion("Error al conectar: " & ex.Message)
-            Return False
+            _connected = False
+            RaiseEvent ConnectionError("Connecting error: " & ex.Message)
+            Return (False)
         End Try
     End Function
 
-    ''' <summary>
-    ''' Desconecta del Arduino
-    ''' </summary>
-    Public Sub Desconectar()
+#End Region
+
+#Region " Disconnect "
+
+    Public Sub Disconnect()
         Try
-            If SerialPort IsNot Nothing AndAlso SerialPort.IsOpen Then
+            If (SerialPort IsNot Nothing AndAlso SerialPort.IsOpen) Then
                 Try
-                    ' Vaciar buffers
                     SerialPort.DiscardInBuffer()
                     SerialPort.DiscardOutBuffer()
 
-                    ' Enviar stop
                     SerialPort.Write("S")
-                    System.Threading.Thread.Sleep(100)
-                Catch
-                    ' Ignorar errores
-                End Try
+                    Threading.Thread.Sleep(100)
+                Catch : End Try
 
-                ' Deshabilitar eventos ANTES de cerrar
                 RemoveHandler SerialPort.DataReceived, AddressOf SerialPort_DataReceived
 
-                ' Cerrar en un hilo separado con timeout
-                Dim closeTask = Task.Run(Sub()
-                                             Try
-                                                 SerialPort.Close()
-                                             Catch
-                                             End Try
-                                         End Sub)
-
-                ' Esperar máximo 1 segundo
-                If Not closeTask.Wait(1000) Then
-                    ' Si no cierra, forzar dispose
+                Dim closeTask = Task.Run(Sub() SerialPort.Close())
+                If (Not closeTask.Wait(1000)) Then
                     SerialPort.Dispose()
                     SerialPort = Nothing
                 End If
             End If
-        Catch
-        Finally
-            _conectado = False
-            RaiseEvent EstadoConexion(False)
+        Catch : Finally
+            _connected = False
+            RaiseEvent ConnectionStatus(False)
         End Try
     End Sub
 
-    ''' <summary>
-    ''' Envía un comando al Arduino
-    ''' </summary>
-    Private Function EnviarComando(comando As String) As Boolean
+#End Region
+
+#Region " Data Received "
+
+    Private Sub SerialPort_DataReceived(sender As Object, e As IO.Ports.SerialDataReceivedEventArgs) Handles SerialPort.DataReceived
         Try
-            If Not Conectado Then
-                RaiseEvent ErrorConexion("No hay conexión con el Arduino")
-                Return False
+            RaiseEvent DataReceived(SerialPort.ReadLine().Trim())
+        Catch : End Try
+    End Sub
+
+#End Region
+
+#Region " Send Data "
+
+    Private Function SendData(command As String) As Boolean
+        Try
+            If (Not (_connected AndAlso SerialPort IsNot Nothing AndAlso SerialPort.IsOpen)) Then
+                RaiseEvent ConnectionError("Not connected")
+                Return (False)
             End If
 
-            SerialPort.WriteLine(comando)
-            Return True
+            SerialPort.WriteLine(command)
+            Return (True)
 
         Catch ex As Exception
-            RaiseEvent ErrorConexion("Error al enviar comando: " & ex.Message)
-            Return False
+            RaiseEvent ConnectionError("Sending error: " & ex.Message)
+            Return (False)
         End Try
     End Function
 
-    ' === MÉTODOS PÚBLICOS PARA CONTROL DEL MOTOR ===
+#End Region
 
-    ''' <summary>
-    ''' Enciende el motor (lo habilita)
-    ''' </summary>
-    Public Function EncenderMotor() As Boolean
-        Return EnviarComando("ON")
+#End Region
+
+#Region " Trim "
+
+#Region " Up "
+
+    Public Function TrimUpContinuous(speed As Integer) As Boolean
+        If (speed < 50 OrElse speed > 5000) Then Return (False)
+
+        Return (SendData($"U:{speed}"))
     End Function
 
-    ''' <summary>
-    ''' Apaga el motor (lo deshabilita, deja de consumir corriente)
-    ''' </summary>
-    Public Function ApagarMotor() As Boolean
-        Return EnviarComando("S")
+    Public Function TrimUp(steps As Integer, speed As Integer) As Boolean
+        If (steps <= 0 OrElse speed < 50 OrElse speed > 5000) Then Return (False)
+
+        Return SendData($"US:{steps}:{speed}")
     End Function
 
-    ''' <summary>
-    ''' Gira el motor en sentido horario
-    ''' </summary>
-    Public Function GirarHorario() As Boolean
-        Return EnviarComando("H")
+#End Region
+
+#Region " Down "
+
+    Public Function TrimDownContinuous(speed As Integer) As Boolean
+        If (speed < 50 OrElse speed > 5000) Then Return (False)
+
+        Return (SendData($"D:{speed}"))
     End Function
 
-    ''' <summary>
-    ''' Gira el motor en sentido antihorario
-    ''' </summary>
-    Public Function GirarAntihorario() As Boolean
-        Return EnviarComando("A")
+    Public Function TrimDown(steps As Integer, speed As Integer) As Boolean
+        If (steps <= 0 OrElse speed < 50 OrElse speed > 5000) Then Return (False)
+
+        Return SendData($"DS:{steps}:{speed}")
     End Function
 
-    ''' <summary>
-    ''' Detiene el movimiento del motor (pero lo mantiene habilitado)
-    ''' </summary>
+#End Region
+
+#Region " Stop "
+
     Public Function DetenerMotor() As Boolean
-        Return EnviarComando("S")
-    End Function
-    Public Function PasosMotor(ByVal comando As String) As Boolean
-        Return EnviarComando(comando)
+        Return (SendData("S"))
     End Function
 
-    ''' <summary>
-    ''' Cambia la velocidad del motor (100-5000 microsegundos)
-    ''' Valores más bajos = más rápido, valores más altos = más lento
-    ''' </summary>
-    Public Function CambiarVelocidad(microsegundos As Integer) As Boolean
-        If microsegundos < 100 OrElse microsegundos > 5000 Then
-            RaiseEvent ErrorConexion("Velocidad fuera de rango (100-5000)")
-            Return False
-        End If
-        Return EnviarComando("SPEED:" & microsegundos.ToString())
-    End Function
+#End Region
 
-    ''' <summary>
-    ''' Obtiene lista de puertos COM disponibles
-    ''' </summary>
-    Public Shared Function ObtenerPuertosDisponibles() As String()
-        Return SerialPort.GetPortNames()
-    End Function
+#End Region
 
-    ' Evento cuando llegan datos del Arduino
-    Private Sub SerialPort_DataReceived(sender As Object, e As SerialDataReceivedEventArgs) Handles SerialPort.DataReceived
-        Try
-            Dim mensaje As String = SerialPort.ReadLine().Trim()
-            RaiseEvent MensajeRecibido(mensaje)
-        Catch ex As Exception
-            ' Ignorar errores de lectura (timeout, etc)
-        End Try
-    End Sub
-
-    ' Liberar recursos
-    Public Sub Dispose()
-        Desconectar()
-        If SerialPort IsNot Nothing Then
-            SerialPort.Dispose()
-        End If
-    End Sub
 End Class
