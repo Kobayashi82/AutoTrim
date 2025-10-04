@@ -95,7 +95,8 @@ Public Class MotorController
 
     Private Sub SerialPort_DataReceived(sender As Object, e As IO.Ports.SerialDataReceivedEventArgs) Handles SerialPort.DataReceived
         Try
-            RaiseEvent DataReceived(SerialPort.ReadLine().Trim())
+            Dim texto As String = SerialPort.ReadLine().Trim()
+            RaiseEvent DataReceived(texto)
         Catch : End Try
     End Sub
 
@@ -128,13 +129,13 @@ Public Class MotorController
 #Region " Up "
 
     Public Function TrimUpContinuous(speed As Integer) As Boolean
-        If (speed < 50 OrElse speed > 5000) Then Return (False)
+        If (speed < 100 OrElse speed > 5000) Then Return (False)
 
         Return (SendData($"U:{speed}"))
     End Function
 
     Public Function TrimUp(steps As Integer, speed As Integer) As Boolean
-        If (steps <= 0 OrElse speed < 50 OrElse speed > 5000) Then Return (False)
+        If (steps <= 0 OrElse speed < 100 OrElse speed > 5000) Then Return (False)
 
         Return SendData($"US:{steps}:{speed}")
     End Function
@@ -144,13 +145,13 @@ Public Class MotorController
 #Region " Down "
 
     Public Function TrimDownContinuous(speed As Integer) As Boolean
-        If (speed < 50 OrElse speed > 5000) Then Return (False)
+        If (speed < 100 OrElse speed > 5000) Then Return (False)
 
         Return (SendData($"D:{speed}"))
     End Function
 
     Public Function TrimDown(steps As Integer, speed As Integer) As Boolean
-        If (steps <= 0 OrElse speed < 50 OrElse speed > 5000) Then Return (False)
+        If (steps <= 0 OrElse speed < 100 OrElse speed > 5000) Then Return (False)
 
         Return SendData($"DS:{steps}:{speed}")
     End Function

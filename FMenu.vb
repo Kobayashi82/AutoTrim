@@ -22,7 +22,7 @@ Public Class FMenu
     Dim Mode As String
     Dim Iniciado As Boolean
 
-    Private WithEvents Motor As MotorController
+    Public WithEvents Motor As MotorController
 
 #End Region
 
@@ -246,6 +246,22 @@ Public Class FMenu
 
 #End Region
 
+#Region " Trim Zero "
+
+    Private Sub Hook_TrimUp() Handles Hook.TrimUp
+        Motor.TrimUpContinuous(trackVelocidad.Value)
+    End Sub
+
+#End Region
+
+#Region " Trim Auto "
+
+    Private Sub Hook_TrimDown() Handles Hook.TrimDown
+        Motor.TrimDownContinuous(trackVelocidad.Value)
+    End Sub
+
+#End Region
+
 #End Region
 
 #Region " PID "
@@ -347,12 +363,18 @@ Public Class FMenu
 
     Private Sub TrimUp_Click(sender As Object, e As EventArgs) Handles btnTrimUp.Click
         If (txtControl.Text = "") Then Return
-        Motor.TrimDown(txtControl.Text, trackVelocidad.Value)
+        Dim resultado As Integer
+
+        If Integer.TryParse(txtControl.Text, resultado) Then Motor.TrimUp(resultado, trackVelocidad.Value)
     End Sub
 
     Private Sub TrimDown_Click(sender As Object, e As EventArgs) Handles btnTrimDown.Click
         If (txtControl.Text = "") Then Return
-        Motor.TrimDown(txtControl.Text, trackVelocidad.Value)
+        Dim resultado As Integer
+
+        If Integer.TryParse(txtControl.Text, resultado) Then
+            Motor.TrimDown(resultado, trackVelocidad.Value)
+        End If
     End Sub
 
     ' === MANEJADORES DE EVENTOS ===
@@ -372,6 +394,14 @@ Public Class FMenu
     Private Sub Motor_ConnectionStatus(connected As Boolean)
         lblEstado.Text = If(connected, "Connected", "Disconnected")
         lblEstado.ForeColor = If(connected, Color.Green, Color.DarkRed)
+    End Sub
+
+    Private Sub trackVelocidad_Scroll(sender As Object, e As EventArgs) Handles trackVelocidad.Scroll
+        TDiff.Text = trackVelocidad.Value.ToString()
+    End Sub
+
+    Private Sub txtSpeed_TextChanged(sender As Object, e As EventArgs) Handles txtSpeed.TextChanged
+        trackVelocidad.Value = If(txtSpeed.Text = "", 1, Math.Min(Math.Max(CInt(txtSpeed.Text), trackVelocidad.Minimum), trackVelocidad.Maximum))
     End Sub
 
 #End Region

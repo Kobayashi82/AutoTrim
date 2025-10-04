@@ -41,6 +41,7 @@ Partial Class FMenu
         Me.lblEstado = New System.Windows.Forms.Label()
         Me.cmbPuertos = New System.Windows.Forms.ComboBox()
         Me.txtControl = New System.Windows.Forms.TextBox()
+        Me.txtSpeed = New System.Windows.Forms.TextBox()
         Me.btnDesconectar = New AutoTrim.BonfireButton()
         Me.btnTrimDown = New AutoTrim.BonfireButton()
         Me.btnTrimUp = New AutoTrim.BonfireButton()
@@ -208,14 +209,16 @@ Partial Class FMenu
         '
         'trackVelocidad
         '
+        Me.trackVelocidad.LargeChange = 50
         Me.trackVelocidad.Location = New System.Drawing.Point(308, 143)
-        Me.trackVelocidad.Maximum = 5000
-        Me.trackVelocidad.Minimum = 50
+        Me.trackVelocidad.Maximum = 700
+        Me.trackVelocidad.Minimum = 350
         Me.trackVelocidad.Name = "trackVelocidad"
         Me.trackVelocidad.Size = New System.Drawing.Size(228, 45)
+        Me.trackVelocidad.SmallChange = 10
         Me.trackVelocidad.TabIndex = 88
         Me.trackVelocidad.TickStyle = System.Windows.Forms.TickStyle.None
-        Me.trackVelocidad.Value = 50
+        Me.trackVelocidad.Value = 350
         '
         'txtLog
         '
@@ -249,8 +252,17 @@ Partial Class FMenu
         Me.txtControl.Name = "txtControl"
         Me.txtControl.Size = New System.Drawing.Size(76, 20)
         Me.txtControl.TabIndex = 92
-        Me.txtControl.Text = "200"
+        Me.txtControl.Text = "1950"
         Me.txtControl.TextAlign = System.Windows.Forms.HorizontalAlignment.Center
+        '
+        'txtSpeed
+        '
+        Me.txtSpeed.Location = New System.Drawing.Point(207, 175)
+        Me.txtSpeed.Name = "txtSpeed"
+        Me.txtSpeed.Size = New System.Drawing.Size(76, 20)
+        Me.txtSpeed.TabIndex = 92
+        Me.txtSpeed.Text = "300"
+        Me.txtSpeed.TextAlign = System.Windows.Forms.HorizontalAlignment.Center
         '
         'btnDesconectar
         '
@@ -336,6 +348,7 @@ Partial Class FMenu
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(75, Byte), Integer), CType(CType(75, Byte), Integer))
         Me.ClientSize = New System.Drawing.Size(548, 276)
+        Me.Controls.Add(Me.txtSpeed)
         Me.Controls.Add(Me.txtControl)
         Me.Controls.Add(Me.cmbPuertos)
         Me.Controls.Add(Me.lblEstado)
@@ -399,4 +412,5 @@ Partial Class FMenu
     Friend WithEvents btnTrimUp As BonfireButton
     Friend WithEvents txtControl As TextBox
     Friend WithEvents btnTrimDown As BonfireButton
+    Friend WithEvents txtSpeed As TextBox
 End Class

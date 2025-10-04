@@ -1,12 +1,88 @@
-﻿
-Public Class Hook
+﻿Public Class Hook
 
 #Region " Variables "
 
     Public Event TrimZero()
     Public Event TrimAuto()
+    Public Event TrimUp()
+    Public Event TrimDown()
+
+    ' Timer necesario para el polling de FSUIPC
+    Private WithEvents timerMain As New Timer With {.Enabled = False, .Interval = 50}
 
 #End Region
+    Public Sub RegisterJoystickButtons()
+        Try
+            ' Verificar que FSUIPC esté conectado primero
+            If Not Global.FSUIPC.FSUIPCConnection.IsOpen Then
+                Return
+            End If
+
+            Dim Input As Global.FSUIPC.UserInputServices = Global.FSUIPC.FSUIPCConnection.UserInputServices
+
+            ' Registrar botones del yoke (ajusta joystick y números de botón según tu hardware)
+            Input.AddJoystickButtonPress("TrimUp", 6, 4, Global.FSUIPC.StateChange.Both)
+            Input.AddJoystickButtonPress("TrimDown", 6, 5, Global.FSUIPC.StateChange.Both)
+
+            ' Registrar el evento
+            AddHandler Input.ButtonPressed, AddressOf Input_ButtonPressed
+
+            ' Iniciar el timer que hace polling
+            timerMain.Start()
+
+        Catch : End Try
+    End Sub
+
+    Private Sub Input_ButtonPressed(sender As Object, e As Global.FSUIPC.UserInputButtonEventArgs)
+        Try
+            ' Obtener referencia al motor desde FMenu
+            Dim fmenu As FMenu = Nothing
+            For Each form As Form In Application.OpenForms
+                If TypeOf form Is FMenu Then
+                    fmenu = DirectCast(form, FMenu)
+                    Exit For
+                End If
+            Next
+
+            If fmenu Is Nothing OrElse fmenu.Motor Is Nothing Then
+                Return
+            End If
+
+            Dim motor As MotorController = fmenu.Motor
+
+            Select Case e.ID
+                Case "TrimUp"
+                    If e.ButtonState Then
+                        motor.TrimUpContinuous(100) ' Velocidad por defecto
+                    Else
+                        motor.DetenerMotor()
+                    End If
+
+                Case "TrimDown"
+                    If e.ButtonState Then
+                        motor.TrimDownContinuous(100) ' Velocidad por defecto
+                    Else
+                        motor.DetenerMotor()
+                    End If
+            End Select
+
+        Catch : End Try
+    End Sub
+
+    Protected Sub timerMain_Tick(sender As Object, e As EventArgs) Handles timerMain.Tick
+        Try
+            ' Esto es CRÍTICO - hace el polling de FSUIPC
+            If Global.FSUIPC.FSUIPCConnection.IsOpen Then
+                Global.FSUIPC.FSUIPCConnection.UserInputServices.CheckForInput()
+            Else
+                ' Si FSUIPC se desconecta, detener el timer
+                timerMain.Stop()
+            End If
+        Catch ex As Exception
+            ' Si hay error, detener el timer para evitar spam de errores
+            timerMain.Stop()
+        End Try
+    End Sub
 
 #Region " Register "
 
@@ -14,12 +90,17 @@ Public Class Hook
         Try
             Dim Input As Global.FSUIPC.UserInputServices = Global.FSUIPC.FSUIPCConnection.UserInputServices
 
-            Input.AddKeyPress("TrimZero", Global.FSUIPC.ModifierKeys.Ctrl, Keys.T, True)
-            Input.AddKeyPress("TrimAuto", Global.FSUIPC.ModifierKeys.Shift, Keys.T, True)
+            Input.AddKeyPress("TrimZero", Global.FSUIPC.ModifierKeys.Ctrl, Keys.O, True)
+            Input.AddKeyPress("TrimAuto", Global.FSUIPC.ModifierKeys.Shift, Keys.O, True)
+            Input.AddKeyPress("TrimUp", Global.FSUIPC.ModifierKeys.Ctrl, Keys.T, True)
+            Input.AddKeyPress("TrimDown", Global.FSUIPC.ModifierKeys.Shift, Keys.T, True)
 
             AddHandler Input.KeyPressed, AddressOf Input_KeyPressed
+
+            ' También registrar los botones del joystick
+            RegisterJoystickButtons()
         Catch ex As Exception
-            MsgBox(ex.Message)
+            MsgBox("Error registering key presses: " & ex.Message)
         End Try
     End Sub
 
@@ -30,11 +111,25 @@ Public Class Hook
     Public Sub UnregisterKeyPresses()
         Try
             Dim Input As Global.FSUIPC.UserInputServices = Global.FSUIPC.FSUIPCConnection.UserInputServices
-            RemoveHandler Input.KeyPressed, AddressOf Input_KeyPressed
 
+            ' Remover handlers
+            RemoveHandler Input.KeyPressed, AddressOf Input_KeyPressed
+            RemoveHandler Input.ButtonPressed, AddressOf Input_ButtonPressed
+
+            ' Remover teclas
             Input.RemoveKeyPress("TrimZero")
             Input.RemoveKeyPress("TrimAuto")
-        Catch : End Try
+            Input.RemoveKeyPress("TrimUp")
+            Input.RemoveKeyPress("TrimDown")
+
+            ' Detener timer
+            timerMain.Stop()
+
+            MsgBox("Joystick y teclas desregistrados correctamente")
+
+        Catch ex As Exception
+            MsgBox("Error unregistering: " & ex.Message)
+        End Try
     End Sub
 
 #End Region
@@ -47,6 +142,10 @@ Public Class Hook
                 RaiseEvent TrimZero()
             Case "TrimAuto"
                 RaiseEvent TrimAuto()
+            Case "TrimUp"
+                RaiseEvent TrimUp()
+            Case "TrimDown"
+                RaiseEvent TrimDown()
         End Select
     End Sub
 
