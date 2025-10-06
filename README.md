@@ -15,6 +15,8 @@
 
 `AutoTrim` es un sistema de control automático de trim que se integra con Microsoft Flight Simulator 2020 a través de FSUIPC. El programa lee continuamente los datos de trim del simulador y utiliza un controlador PID para ajustar físicamente la rueda de trim del Honeycomb Bravo mediante un motor controlado por Arduino, proporcionando control automático de pitch y mantenimiento de velocidad vertical.
 
+ESTE README ES UN TEMPLATE Y NO REPRESENTA EL ESTADO ACTUAL DEL PROYECTO. DE HECHO, HAY MUCHAS COSAS MAL EN EL README
+
 ## ✨ Características
 
 ### Integración con MSFS 2020
