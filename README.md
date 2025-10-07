@@ -17,8 +17,6 @@
 
 Ejemplo de trim automático en un [Boeing 737](https://youtu.be/yjuD2yaNzro)
 
-ESTE README ES UN TEMPLATE Y NO REPRESENTA EL ESTADO ACTUAL DEL PROYECTO. DE HECHO, HAY MUCHAS COSAS MAL EN EL README
-
 ## ✨ Características
 
 ### Configuración Flexible
@@ -58,7 +56,7 @@ ESTE README ES UN TEMPLATE Y NO REPRESENTA EL ESTADO ACTUAL DEL PROYECTO. DE HEC
 - Honeycomb Bravo Throttle Quadrant
 - Arduino Uno R3
 - Nema 17 Step Motor (12V, 2A, 55N·cm bipolar, 1.81)
-- TB6600 Controller (24V, 4A, microstepping hasta 1/32), configurado a 3A, 1/1
+- TB6600 Controller (24V, 4A, microstepping hasta 1/32), configurado a 4A, 1/1
 - Fuente de Alimentación (15V, 5A)
 - Correa Dentada GT2 con poleas de 20 dientes
 
