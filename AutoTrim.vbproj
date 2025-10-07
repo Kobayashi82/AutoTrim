@@ -158,6 +158,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="AutoTrim.ico" />
+    <Content Include="Documentation\photo_2025-10-07_21-45-33.jpg" />
     <None Include="bin\x64\Release\fsuipcClient.dll" />
     <None Include="packages.config" />
     <None Include="Resources\Red.png" />
