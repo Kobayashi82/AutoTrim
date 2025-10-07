@@ -498,6 +498,8 @@ R: No para uso básico. Solo necesitas cargar el sketch en Arduino y ajustar con
 - [ ] Modo de aprendizaje automático de parámetros PID
 - [ ] Telemetría y estadísticas de vuelo
 
+- https://youtu.be/yjuD2yaNzro?t=10
+
 ## 📄 Licencia
 
 Este proyecto está licenciado bajo la WTFPL – [Do What the Fuck You Want to Public License](http://www.wtfpl.net/about/).

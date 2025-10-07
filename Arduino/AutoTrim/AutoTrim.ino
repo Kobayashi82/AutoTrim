@@ -17,10 +17,8 @@ int stepDelay = 100; // microseconds
 unsigned long tiempoInicio = 0;
 
 // Variables para rampa de aceleración
-int stepDelayTarget = 300;    // Velocidad objetivo
+int stepDelayTarget = 100;    // Velocidad objetivo
 int stepDelayStart = 700;     // Velocidad inicial (lenta)
-int accelRate = 5;            // Cuánto acelerar cada ciertos pasos
-int accelSteps = 5;           // Cada cuántos pasos acelerar
 int stepCounter = 0;          // Contador de pasos para aceleración
 
 void setup() {
@@ -28,7 +26,7 @@ void setup() {
   pinMode(DIR, OUTPUT);
   pinMode(PUL, OUTPUT);
   
-  digitalWrite(ENA, HIGH);  // Disabled
+  digitalWrite(ENA, LOW);  // Disabled
   digitalWrite(DIR, LOW);
   digitalWrite(PUL, LOW);
   
@@ -91,18 +89,25 @@ void stopMotor() {
   status = STOPPED;
   stepRemaining = 0;
   digitalWrite(PUL, LOW);
-  digitalWrite(ENA, HIGH);
+  // digitalWrite(ENA, HIGH);
+  delayMicroseconds(10000);
 }
 
 void moveContinuous(bool dir) {
+  if (direction != dir) stopMotor();
+  
   if (status == STOPPED) {
-    digitalWrite(ENA, LOW);
+    // digitalWrite(ENA, LOW);
     tiempoInicio = millis();
   }
   
-  direction = dir;
-  digitalWrite(DIR, direction);
+  if (direction != dir) {          // cambio de dirección
+    direction = dir;
+    digitalWrite(DIR, direction);
+    delayMicroseconds(10000);        // pausa de estabilización
+  }
   
+  stepRemaining = 0;
   status = CONT_MOVE;
   
   // Reinicia aceleración también para continuo
@@ -114,13 +119,18 @@ void moveContinuous(bool dir) {
 }
 
 void MoveStep(bool dir, int steps) {
+  if (direction != dir) stopMotor();
+  
   if (status == STOPPED) {
-    digitalWrite(ENA, LOW);
+    // digitalWrite(ENA, LOW);
     tiempoInicio = millis();
   }
   
-  direction = dir;
-  digitalWrite(DIR, direction);
+  if (direction != dir) {          // cambio de dirección
+    direction = dir;
+    digitalWrite(DIR, direction);
+    delayMicroseconds(10000);        // pausa de estabilización
+  }
   
   stepRemaining = steps;
   status = STEP_MOVE;
@@ -144,13 +154,17 @@ void generatePulses() {
     
     if (!pulseState) {
       stepCounter++;
-      
-      // Aceleración progresiva para ambos modos
-      if (stepCounter % accelSteps == 0 && stepDelay > stepDelayTarget) {
-        stepDelay -= accelRate;
+
+      // Aceleración progresiva suave (curva exponencial)
+      if (stepDelay > stepDelayTarget) {
+        float progress = (float)stepCounter / 300.0; // controla rapidez; menor = acelera antes
+        if (progress > 1.0) progress = 1.0;
+        float accelFactor = 1 - exp(-4 * progress);  // sube rápido, se suaviza al final
+        int newDelay = stepDelayStart - (stepDelayStart - stepDelayTarget) * accelFactor;
+        stepDelay = newDelay;
         if (stepDelay < stepDelayTarget) stepDelay = stepDelayTarget;
       }
-      
+
       // Solo para movimiento por pasos
       if (status == STEP_MOVE) {
         stepRemaining--;
