@@ -46,13 +46,6 @@ ESTE README ES UN TEMPLATE Y NO REPRESENTA EL ESTADO ACTUAL DEL PROYECTO. DE HEC
 - **Control de Motor**: Ajuste contínuo o por pasos del motor con velocidad configurable
 - **Curva de Aceleración**: Para movimientos suaves y precisos
 
-## 🔧 Instalación
-
-- Descargar y extraer `AutoTrim` desde la sección [releases](https://github.com/Kobayashi82/AutoTrim/releases/)
-- Asegurarse de tener instalado [FSUIPC7](https://www.fsuipc.com/) y los drivers de [Arduino](https://www.arduino.cc/en/software/)
-- Cargar el sketch de Arduino desde la carpeta `Arduino/AutoTrim` usando Arduino IDE
-- Ejecutar `AutoTrim.exe`
-
 ## 🖥️ Requisitos del Sistema
 
 ### Software
@@ -68,6 +61,13 @@ ESTE README ES UN TEMPLATE Y NO REPRESENTA EL ESTADO ACTUAL DEL PROYECTO. DE HEC
 - TB6600 Controller (24V, 4A, microstepping hasta 1/32), configurado a 3A, 1/1
 - Fuente de Alimentación (15V, 5A)
 - Correa Dentada GT2 con poleas de 20 dientes
+
+## 🔧 Instalación
+
+- Descargar y extraer `AutoTrim` desde la sección [releases](https://github.com/Kobayashi82/AutoTrim/releases/)
+- Asegurarse de tener instalado [FSUIPC7](https://www.fsuipc.com/) y los drivers de [Arduino](https://www.arduino.cc/en/software/)
+- Cargar el sketch de Arduino desde la carpeta `Arduino/AutoTrim` usando Arduino IDE
+- Ejecutar `AutoTrim.exe`
 
 ## ⚙️ Archivo de Configuración
 
@@ -112,10 +112,6 @@ ESTE README ES UN TEMPLATE Y NO REPRESENTA EL ESTADO ACTUAL DEL PROYECTO. DE HEC
 ## 🔌 Configuración del Arduino
 
 ### Esquema de Conexión
-
-#define ENA 8
-#define DIR 9
-#define PUL 10
 
 ```
 Arduino Uno R3
