@@ -232,9 +232,8 @@ MSFS 2020 (cierra el bucle)
 Error: No se puede conectar a FSUIPC
 Solución:
 1. Verificar que MSFS 2020 está ejecutándose
-2. Confirmar que FSUIPC7 está instalado
-3. Verificar que FSUIPC está habilitado en configuración
-4. Ejecutar AutoTrim como administrador
+2. Confirmar que FSUIPC7 está instalado y en ejecución
+3. Ejecutar AutoTrim como administrador
 ```
 
 ### Arduino no responde
@@ -286,22 +285,22 @@ Solución:
 
 ## 📚 Preguntas Frecuentes
 
-**P: ¿Funciona con todos los aviones de MSFS 2020?**
+**P: ¿Funciona con todos los aviones de MSFS 2020?**  
 R: Sí, funciona con cualquier avión que tenga trim de pitch. Algunos aviones pueden requerir ajustes en los parámetros PID.
 
-**P: ¿Puedo usar otro controlador en lugar de Arduino?**
+**P: ¿Puedo usar otro controlador en lugar de Arduino?**  
 R: Sí, cualquier microcontrolador que soporte comunicación serie puede usarse modificando el protocolo.
 
-**P: ¿Afecta al trim manual del Honeycomb Bravo?**
+**P: ¿Afecta al trim manual del Honeycomb Bravo?**  
 R: No, el sistema detecta movimientos manuales y se adapta. Puedes desactivar AutoTrim en cualquier momento.
 
-**P: ¿Funciona en modo multijugador?**
+**P: ¿Funciona en modo multijugador?**  
 R: Sí, funciona perfectamente en sesiones multijugador y compartidas.
 
-**P: ¿Cuánta latencia introduce el sistema?**
+**P: ¿Cuánta latencia introduce el sistema?**  
 R: La latencia total es típicamente <100ms, imperceptible durante el vuelo normal.
 
-**P: ¿Necesito programación para usarlo?**
+**P: ¿Necesito programación para usarlo?**  
 R: No para uso básico. Solo necesitas cargar el sketch en Arduino y ajustar config.ini.
 
 ## 📄 Licencia
