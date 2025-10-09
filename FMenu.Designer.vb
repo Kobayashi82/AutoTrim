@@ -212,13 +212,13 @@ Partial Class FMenu
         Me.trackVelocidad.LargeChange = 50
         Me.trackVelocidad.Location = New System.Drawing.Point(308, 143)
         Me.trackVelocidad.Maximum = 700
-        Me.trackVelocidad.Minimum = 100
+        Me.trackVelocidad.Minimum = 30
         Me.trackVelocidad.Name = "trackVelocidad"
         Me.trackVelocidad.Size = New System.Drawing.Size(228, 45)
         Me.trackVelocidad.SmallChange = 10
         Me.trackVelocidad.TabIndex = 88
         Me.trackVelocidad.TickStyle = System.Windows.Forms.TickStyle.None
-        Me.trackVelocidad.Value = 145
+        Me.trackVelocidad.Value = 100
         '
         'txtLog
         '
@@ -261,7 +261,7 @@ Partial Class FMenu
         Me.txtSpeed.Name = "txtSpeed"
         Me.txtSpeed.Size = New System.Drawing.Size(76, 20)
         Me.txtSpeed.TabIndex = 92
-        Me.txtSpeed.Text = "100"
+        Me.txtSpeed.Text = "30"
         Me.txtSpeed.TextAlign = System.Windows.Forms.HorizontalAlignment.Center
         '
         'btnDesconectar

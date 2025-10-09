@@ -13,13 +13,13 @@ bool direction = LOW;
 int stepRemaining = 0;
 unsigned long pulseLast = 0;
 bool pulseState = LOW;
-int stepDelay = 100; // microseconds
+int stepDelay = 30; // microseconds
 unsigned long tiempoInicio = 0;
 
 // Variables para rampa de aceleración
-int stepDelayTarget = 100;    // Velocidad objetivo
+int stepDelayTarget = 30;    // Velocidad objetivo
 int stepDelayStart = 700;     // Velocidad inicial (lenta)
-int stepCounter = 0;          // Contador de pasos para aceleración
+unsigned long stepCounter = 0;          // Contador de pasos para aceleración
 
 void setup() {
   pinMode(ENA, OUTPUT);
@@ -48,7 +48,7 @@ void processCommands() {
 
     } else if (command.startsWith("D:")) {                  // Trim Down Continuos
       int speed = command.substring(2).toInt();
-      if (speed >= 100 && speed <= 5000) {
+      if (speed >= 30 && speed <= 5000) {
         stepDelayTarget = speed;
       }
       moveContinuous(LOW);     
@@ -57,12 +57,12 @@ void processCommands() {
   
       int steps = command.substring(3, firstColon).toInt();
       int speed = command.substring(firstColon + 1).toInt();
-      if (speed >= 100 && speed <= 5000) stepDelayTarget = speed;
+      if (speed >= 30 && speed <= 5000) stepDelayTarget = speed;
       MoveStep(LOW, steps);
 
     } else if (command.startsWith("U:")) {                  // Trim Up Continuos
       int speed = command.substring(2).toInt();
-      if (speed >= 100 && speed <= 5000) {
+      if (speed >= 30 && speed <= 5000) {
         stepDelayTarget = speed;
       }
       moveContinuous(HIGH);
@@ -71,7 +71,7 @@ void processCommands() {
   
       int steps = command.substring(3, firstColon).toInt();
       int speed = command.substring(firstColon + 1).toInt();
-      if (speed >= 100 && speed <= 5000) stepDelayTarget = speed;
+      if (speed >= 30 && speed <= 5000) stepDelayTarget = speed;
       MoveStep(HIGH, steps);
      }
   }
@@ -104,7 +104,7 @@ void moveContinuous(bool dir) {
   if (direction != dir) {          // cambio de dirección
     direction = dir;
     digitalWrite(DIR, direction);
-    delayMicroseconds(10000);        // pausa de estabilización
+    delayMicroseconds(15000);        // pausa de estabilización
   }
   
   stepRemaining = 0;
@@ -129,7 +129,7 @@ void MoveStep(bool dir, int steps) {
   if (direction != dir) {          // cambio de dirección
     direction = dir;
     digitalWrite(DIR, direction);
-    delayMicroseconds(10000);        // pausa de estabilización
+    delayMicroseconds(15000);        // pausa de estabilización
   }
   
   stepRemaining = steps;

@@ -404,6 +404,10 @@ Public Class FMenu
         trackVelocidad.Value = If(txtSpeed.Text = "", 1, Math.Min(Math.Max(CInt(txtSpeed.Text), trackVelocidad.Minimum), trackVelocidad.Maximum))
     End Sub
 
+    Private Sub btnTrimUpContinuous_Click(sender As Object, e As EventArgs)
+
+    End Sub
+
 #End Region
 
 End Class
