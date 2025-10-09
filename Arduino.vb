@@ -128,15 +128,7 @@ Public Class MotorController
 
 #Region " Up "
 
-    Public Function TrimUpContinuous(speed As Integer) As Boolean
-        If (speed < 30 OrElse speed > 5000) Then Return (False)
-
-        Return (SendData($"U:{speed}"))
-    End Function
-
-    Public Function TrimUp(steps As Integer, speed As Integer) As Boolean
-        If (steps <= 0 OrElse speed < 30 OrElse speed > 5000) Then Return (False)
-
+    Public Function TrimUp(steps As Integer, speed As Integer)
         Return SendData($"US:{steps}:{speed}")
     End Function
 
@@ -144,15 +136,7 @@ Public Class MotorController
 
 #Region " Down "
 
-    Public Function TrimDownContinuous(speed As Integer) As Boolean
-        If (speed < 30 OrElse speed > 5000) Then Return (False)
-
-        Return (SendData($"D:{speed}"))
-    End Function
-
-    Public Function TrimDown(steps As Integer, speed As Integer) As Boolean
-        If (steps <= 0 OrElse speed < 30 OrElse speed > 5000) Then Return (False)
-
+    Public Function TrimDown(steps As Integer, speed As Integer)
         Return SendData($"DS:{steps}:{speed}")
     End Function
 

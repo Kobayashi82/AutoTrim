@@ -252,7 +252,7 @@ Partial Class FMenu
         Me.txtControl.Name = "txtControl"
         Me.txtControl.Size = New System.Drawing.Size(76, 20)
         Me.txtControl.TabIndex = 92
-        Me.txtControl.Text = "1950"
+        Me.txtControl.Text = "1925"
         Me.txtControl.TextAlign = System.Windows.Forms.HorizontalAlignment.Center
         '
         'txtSpeed

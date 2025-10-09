@@ -53,14 +53,14 @@
             Select Case e.ID
                 Case "TrimUp"
                     If e.ButtonState Then
-                        motor.TrimUpContinuous(100) ' Velocidad por defecto
+                        motor.TrimUp(0, 100) ' Velocidad por defecto
                     Else
                         motor.DetenerMotor()
                     End If
 
                 Case "TrimDown"
                     If e.ButtonState Then
-                        motor.TrimDownContinuous(100) ' Velocidad por defecto
+                        motor.TrimDown(0, 100) ' Velocidad por defecto
                     Else
                         motor.DetenerMotor()
                     End If

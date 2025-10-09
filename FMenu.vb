@@ -249,7 +249,7 @@ Public Class FMenu
 #Region " Trim Zero "
 
     Private Sub Hook_TrimUp() Handles Hook.TrimUp
-        Motor.TrimUpContinuous(trackVelocidad.Value)
+        Motor.TrimUp(0, trackVelocidad.Value)
     End Sub
 
 #End Region
@@ -257,7 +257,7 @@ Public Class FMenu
 #Region " Trim Auto "
 
     Private Sub Hook_TrimDown() Handles Hook.TrimDown
-        Motor.TrimDownContinuous(trackVelocidad.Value)
+        Motor.TrimDown(0, trackVelocidad.Value)
     End Sub
 
 #End Region
@@ -345,7 +345,7 @@ Public Class FMenu
 
     ' Girar horario mientras se mantiene pulsado
     Private Sub btnTrimUpContinuous_MouseDown(sender As Object, e As MouseEventArgs) Handles btnTrimUpContinuous.MouseDown
-        Motor.TrimUpContinuous(trackVelocidad.Value)
+        Motor.TrimUp(0, trackVelocidad.Value)
     End Sub
 
     Private Sub btnTrimUpContinuous_MouseUp(sender As Object, e As MouseEventArgs) Handles btnTrimUpContinuous.MouseUp
@@ -354,7 +354,7 @@ Public Class FMenu
 
     ' Girar antihorario mientras se mantiene pulsado
     Private Sub btnTrimDownContinuous_MouseDown(sender As Object, e As MouseEventArgs) Handles btnTrimDownContinuous.MouseDown
-        Motor.TrimDownContinuous(trackVelocidad.Value)
+        Motor.TrimDown(0, trackVelocidad.Value)
     End Sub
 
     Private Sub btnTrimDownContinuous_MouseUp(sender As Object, e As MouseEventArgs) Handles btnTrimDownContinuous.MouseUp
@@ -404,7 +404,7 @@ Public Class FMenu
         trackVelocidad.Value = If(txtSpeed.Text = "", 1, Math.Min(Math.Max(CInt(txtSpeed.Text), trackVelocidad.Minimum), trackVelocidad.Maximum))
     End Sub
 
-    Private Sub btnTrimUpContinuous_Click(sender As Object, e As EventArgs)
+    Private Sub btnTrimUpContinuous_Click_1(sender As Object, e As EventArgs)
 
     End Sub
 
