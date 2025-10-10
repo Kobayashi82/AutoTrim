@@ -1,4 +1,3 @@
-
 Public Class FSUIPC
 
 #Region " Variables "
@@ -11,6 +10,7 @@ Public Class FSUIPC
     Private FSUIPC_Trim As New Global.FSUIPC.Offset(Of Short)(&HBC2)
     Private FSUIPC_TrimSet As New Global.FSUIPC.Offset(Of Short)(&HBC0)
     Private FSUIPC_VerticalSpeed As New Global.FSUIPC.Offset(Of Integer)(&H2C8)
+    Private FSUIPC_IndicatedAirspeed As New Global.FSUIPC.Offset(Of Integer)(&H2BC) ' Indicated Airspeed en knots
 
     ' Configuración
     Private Config As ConfigManager
@@ -20,6 +20,8 @@ Public Class FSUIPC
     Private _verticalSpeed As Double = 0
     Private _trimValue As Short = 0
     Private _trimPercentage As Double = 0
+    Private _elevatorTrim As Double = 0 ' Trim en rango -1600 a 1600
+    Private _indicatedAirspeed As Double = 0 ' Velocidad en knots
 
     Public lowerLimit As Integer = -16383
     Public upperLimit As Integer = 16383
@@ -56,6 +58,18 @@ Public Class FSUIPC
     Public ReadOnly Property TrimPercentage As Double
         Get
             Return (_trimPercentage)
+        End Get
+    End Property
+
+    Public ReadOnly Property ElevatorTrim As Double
+        Get
+            Return (_elevatorTrim)
+        End Get
+    End Property
+
+    Public ReadOnly Property IndicatedAirspeed As Double
+        Get
+            Return (_indicatedAirspeed)
         End Get
     End Property
 
@@ -151,6 +165,12 @@ Public Class FSUIPC
     Private Sub UpdateData()
         _verticalSpeed = (FSUIPC_VerticalSpeed.Value / 256) * 60.0 * 3.28084
         _trimValue = FSUIPC_Trim.Value
+
+        ' Convertir trim value a rango -1600 a 1600 para el PID Controller
+        _elevatorTrim = _trimValue
+
+        ' Convertir velocidad indicada (el offset está en knots * 128)
+        _indicatedAirspeed = FSUIPC_IndicatedAirspeed.Value / 128.0
 
         If (_trimValue < lowerLimit) Then
             _trimPercentage = 0

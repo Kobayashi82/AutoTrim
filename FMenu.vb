@@ -1,5 +1,4 @@
-﻿
-Public Class FMenu
+﻿Public Class FMenu
 
 #Region " Variables "
 
@@ -10,7 +9,7 @@ Public Class FMenu
     Private WithEvents Hook As New Hook()
     Public WithEvents Motor As MotorController
 
-    Private PIDCtr As New PIDController(Motor, FSUIPCMgr)
+    Private PIDCtr As PIDController ' Declarar sin inicializar
     Private WithEvents PIDTimer As New Timer With {.Enabled = False, .Interval = 200}
 
     Dim MSFS_VerticalSpeed As Double
@@ -56,6 +55,9 @@ Public Class FMenu
         FSUIPCMgr.Connect()
 
         Motor = New MotorController()
+
+        ' Inicializar PIDController después de que Motor y FSUIPCMgr estén listos
+        PIDCtr = New PIDController(Motor, FSUIPCMgr)
 
         AddHandler Motor.DataReceived, AddressOf Motor_DataReceived
         AddHandler Motor.ConnectionError, AddressOf Motor_ConnectionError
@@ -113,16 +115,8 @@ Public Class FMenu
     Private Sub TTexto_LostFocus(sender As Object, e As EventArgs) Handles TTexto.LostFocus
         If (TTexto.Text = "") Then TTexto.Text = 0
 
-        Final_VerticalSpeed = TTexto.Text
-        'PIDController2.SetPoint = Final_VerticalSpeed
+        Target_VS = TTexto.Text
 
-        If (TTexto.Text = "0") Then
-            Button1.Text = If(Iniciado = True, "Trim-Zero ON", "Trim-Zero OFF")
-            Mode = "TrimZero"
-        Else
-            Button1.Text = If(Iniciado = True, "Trim-Auto ON", "Trim-Auto OFF")
-            Mode = "TrimAuto"
-        End If
     End Sub
 
 #End Region
@@ -222,6 +216,8 @@ Public Class FMenu
     Private Sub StartControl()
         If (Not FSUIPCMgr.IsConnected) Then Return
 
+        If (PIDCtr Is Nothing) Then PIDCtr = New PIDController(Motor, FSUIPCMgr)
+
         Iniciado = True
         lbl_AP_Status.Text = "AP ON"
 
@@ -236,7 +232,7 @@ Public Class FMenu
 #Region " Timer "
 
     Private Sub PIDTimer_Tick(sender As Object, e As EventArgs) Handles PIDTimer.Tick
-        If (Not Iniciado OrElse Not FSUIPCMgr.IsConnected) Then
+        If (Not Iniciado OrElse Not FSUIPCMgr.IsConnected OrElse PIDCtr Is Nothing) Then
             Iniciado = False
             PIDTimer.Stop()
             lbl_AP_Status.Text = "AP OFF"
@@ -332,14 +328,6 @@ Public Class FMenu
 
     Private Sub txtSpeed_TextChanged(sender As Object, e As EventArgs) Handles txtSpeed.TextChanged
         trackVelocidad.Value = If(txtSpeed.Text = "", 1, Math.Min(Math.Max(CInt(txtSpeed.Text), trackVelocidad.Minimum), trackVelocidad.Maximum))
-    End Sub
-
-    Private Sub btnTrimUpContinuous_Click_1(sender As Object, e As EventArgs)
-
-    End Sub
-
-    Private Sub btn_AP_Level_Click(sender As Object, e As EventArgs) Handles btn_AP_Level.Click
-
     End Sub
 
 #End Region

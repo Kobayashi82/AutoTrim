@@ -1,5 +1,4 @@
-﻿
-Imports System.Threading
+﻿Imports System.Threading
 
 Public Class PIDController
     ' Parámetros del PID
@@ -13,21 +12,25 @@ Public Class PIDController
     Private previousTime As DateTime = DateTime.Now
 
     ' Configuración del controlador
-    Private referenceSpeed As Double ' Velocidad de referencia en knots
-    Private maxStepsPerCycle As Integer
-    Private deadband As Double ' FPM
-    Private trimMargin As Double ' Margen para límites de trim
-    Private speedScalingExponent As Double = 1.5 ' Exponente para escalar por velocidad
+    Private referenceSpeed As Double
+    Private minSpeed As Integer = 200 ' Velocidad mínima del motor
+    Private maxSpeed As Integer = 700 ' Velocidad máxima del motor
+    Private deadband As Double
+    Private trimMargin As Double
+    Private speedScalingExponent As Double = 1.5
 
     ' Límites del simulador
-    Private ReadOnly MIN_TRIM As Double = -1600
-    Private ReadOnly MAX_TRIM As Double = 1600
-    Private ReadOnly MOTOR_SPEED As Integer = 30
+    Private ReadOnly MIN_TRIM As Double = -16383
+    Private ReadOnly MAX_TRIM As Double = 16383
 
-    ' Anti-windup - detección de saturación
+    ' Anti-windup
     Private saturationCounter As Integer = 0
-    Private ReadOnly SATURATION_THRESHOLD As Integer = 5 ' Ciclos para detectar saturación
+    Private ReadOnly SATURATION_THRESHOLD As Integer = 5
     Private previousError As Double = 0
+
+    ' Control de movimiento continuo
+    Private currentDirection As Integer = 0 ' -1 = down, 0 = stopped, 1 = up
+    Private currentMotorSpeed As Integer = 0
 
     ' Referencias externas
     Private Motor As Object
@@ -36,68 +39,60 @@ Public Class PIDController
     Public Sub New(motorInstance As Object, fsuipcInstance As Object)
         Motor = motorInstance
         FSUIPCMgr = fsuipcInstance
-
         LoadDefaultProfile()
     End Sub
 
     Public Sub LoadProfile(profileType As AircraftProfile)
         Select Case profileType
             Case AircraftProfile.LightSingleEngine
-                Kp = 0.08
-                Ki = 0.01
-                Kd = 0.15
+                Kp = 0.1
+                Ki = 0.008
+                Kd = 0.8
                 referenceSpeed = 110
-                maxStepsPerCycle = 40
-                deadband = 50
+                deadband = 150
                 trimMargin = 150
 
             Case AircraftProfile.LightTwinEngine
-                Kp = 0.06
+                Kp = 0.12
                 Ki = 0.008
-                Kd = 0.12
+                Kd = 0.35
                 referenceSpeed = 150
-                maxStepsPerCycle = 50
                 deadband = 60
                 trimMargin = 150
 
             Case AircraftProfile.RegionalTurboprop
-                Kp = 0.05
+                Kp = 0.1
                 Ki = 0.006
-                Kd = 0.1
+                Kd = 0.3
                 referenceSpeed = 200
-                maxStepsPerCycle = 60
                 deadband = 70
                 trimMargin = 200
 
             Case AircraftProfile.CommercialJetSmall
-                Kp = 0.04
+                Kp = 0.08
                 Ki = 0.005
-                Kd = 0.08
+                Kd = 0.25
                 referenceSpeed = 250
-                maxStepsPerCycle = 70
                 deadband = 80
                 trimMargin = 200
 
             Case AircraftProfile.CommercialJetLarge
-                Kp = 0.03
+                Kp = 0.06
                 Ki = 0.004
-                Kd = 0.06
+                Kd = 0.2
                 referenceSpeed = 280
-                maxStepsPerCycle = 80
                 deadband = 100
                 trimMargin = 250
 
             Case AircraftProfile.Fighter
-                Kp = 0.1
+                Kp = 0.18
                 Ki = 0.012
-                Kd = 0.2
+                Kd = 0.5
                 referenceSpeed = 300
-                maxStepsPerCycle = 100
                 deadband = 100
                 trimMargin = 200
         End Select
 
-        ' Resetear estado al cambiar perfil
         ResetController()
     End Sub
 
@@ -106,28 +101,25 @@ Public Class PIDController
     End Sub
 
     Public Sub SetCustomParameters(kpValue As Double, kiValue As Double, kdValue As Double,
-                                   refSpeed As Double, maxSteps As Integer,
-                                   deadbandFpm As Double, margin As Double)
+                                   refSpeed As Double, deadbandFpm As Double, margin As Double)
         Kp = kpValue
         Ki = kiValue
         Kd = kdValue
         referenceSpeed = refSpeed
-        maxStepsPerCycle = maxSteps
         deadband = deadbandFpm
         trimMargin = margin
     End Sub
 
     Public Sub Update(targetVS As Double)
         ' Leer valores del simulador
-        Dim currentVS As Double = FSUIPCMgr.VerticalSpeed ' Asume que está en FPM
-        Dim currentTrim As Double = FSUIPCMgr.ElevatorTrim ' Valor entre -1600 y 1600
-        Dim currentSpeed As Double = FSUIPCMgr.IndicatedAirspeed ' En knots
+        Dim currentVS As Double = FSUIPCMgr.VerticalSpeed
+        Dim currentTrim As Double = FSUIPCMgr.ElevatorTrim
+        Dim currentSpeed As Double = FSUIPCMgr.IndicatedAirspeed
 
         ' Calcular tiempo transcurrido
         Dim currentTime As DateTime = DateTime.Now
         Dim deltaTime As Double = (currentTime - previousTime).TotalSeconds
 
-        ' Evitar divisiones por cero o valores anormales
         If deltaTime <= 0 Or deltaTime > 1.0 Then
             previousTime = currentTime
             Return
@@ -136,10 +128,14 @@ Public Class PIDController
         ' Calcular error
         Dim errorVS As Double = targetVS - currentVS
 
-        ' Deadband - no actuar si estamos muy cerca del target
+        ' Deadband - DETENER si estamos cerca del target
         If Math.Abs(errorVS) < deadband Then
-            ' Opcionalmente congelar integrador en deadband
-            ' integralAccumulated *= 0.9 ' Decaimiento suave
+            If currentDirection <> 0 Then
+                Motor.DetenerMotor()
+                currentDirection = 0
+                currentMotorSpeed = 0
+                FMenu.lbl_AP_Status.Text = "HOLD (deadband)"
+            End If
             previousTime = currentTime
             previousVS = currentVS
             Return
@@ -149,18 +145,16 @@ Public Class PIDController
         Dim pTerm As Double = Kp * errorVS
 
         ' === TÉRMINO INTEGRAL con Anti-Windup ===
-        ' Solo acumular si no estamos en los límites o saturados
         Dim canIntegrate As Boolean = True
 
-        ' Check límites del simulador
+        ' Límites del simulador
         If (currentTrim >= MAX_TRIM - trimMargin And pTerm > 0) Or
            (currentTrim <= MIN_TRIM + trimMargin And pTerm < 0) Then
             canIntegrate = False
-            ' Reducir integrador existente (back-calculation)
             integralAccumulated *= 0.8
         End If
 
-        ' Detectar saturación aerodinámica
+        ' Saturación aerodinámica
         If DetectAeroSaturation(errorVS, currentVS) Then
             canIntegrate = False
             integralAccumulated *= 0.9
@@ -168,64 +162,84 @@ Public Class PIDController
 
         If canIntegrate Then
             integralAccumulated += errorVS * deltaTime
-
-            ' Limitar el integrador para evitar windup excesivo
-            Dim maxIntegral As Double = 5000 ' Ajustar según necesidad
+            Dim maxIntegral As Double = 5000
             integralAccumulated = Math.Max(-maxIntegral, Math.Min(maxIntegral, integralAccumulated))
         End If
 
         Dim iTerm As Double = Ki * integralAccumulated
 
         ' === TÉRMINO DERIVATIVO ===
-        ' Calcular solo del VS, no del error (evita derivative kick)
         Dim vsRate As Double = (currentVS - previousVS) / deltaTime
-        Dim dTerm As Double = -Kd * vsRate ' Negativo porque queremos frenar el cambio
+        Dim dTerm As Double = -Kd * vsRate
 
-        ' === SALIDA BASE DEL PID ===
+        ' === SALIDA DEL PID ===
         Dim pidOutput As Double = pTerm + iTerm + dTerm
 
         ' === ESCALADO POR VELOCIDAD ===
         Dim speedFactor As Double = 1.0
-        If currentSpeed > 10 Then ' Evitar división por cero en tierra
+        If currentSpeed > 10 Then
             speedFactor = Math.Pow(referenceSpeed / currentSpeed, speedScalingExponent)
         End If
 
-        Dim stepsToMove As Double = pidOutput * speedFactor
+        Dim adjustedOutput As Double = pidOutput * speedFactor
 
-        ' === RATE LIMITING ===
-        If Math.Abs(stepsToMove) > maxStepsPerCycle Then
-            stepsToMove = Math.Sign(stepsToMove) * maxStepsPerCycle
+        ' === CONVERTIR A DIRECCIÓN Y VELOCIDAD DEL MOTOR ===
+        Dim desiredDirection As Integer = Math.Sign(adjustedOutput)
+
+        ' Mapear la magnitud de la salida a velocidad del motor (invertida: menor número = más rápido)
+        Dim outputMagnitude As Double = Math.Abs(adjustedOutput)
+
+        ' Zona de desaceleración progresiva cerca del target
+        Dim errorMagnitude As Double = Math.Abs(errorVS)
+
+        Dim desiredSpeed As Integer
+        If errorMagnitude > 500 Then
+            ' Lejos del target - movimiento rápido
+            desiredSpeed = minSpeed
+        ElseIf errorMagnitude > 200 Then
+            ' Zona media - empezar a desacelerar
+            desiredSpeed = CInt(minSpeed + (maxSpeed - minSpeed) * 0.3)
+        ElseIf errorMagnitude > 100 Then
+            ' Cerca del target - movimiento lento
+            desiredSpeed = CInt(minSpeed + (maxSpeed - minSpeed) * 0.6)
+        Else
+            ' Muy cerca - movimiento muy lento
+            desiredSpeed = maxSpeed
         End If
 
-        ' Redondear a entero
-        Dim finalSteps As Integer = CInt(Math.Round(stepsToMove))
-
-        ' === ENVIAR COMANDO AL MOTOR ===
-        If finalSteps <> 0 Then
-            If finalSteps > 0 Then
-                Motor.TrimUp(Math.Abs(finalSteps), MOTOR_SPEED)
+        ' === ENVIAR COMANDO AL MOTOR SOLO SI CAMBIA ===
+        If desiredDirection <> currentDirection Or Math.Abs(desiredSpeed - currentMotorSpeed) > 50 Then
+            If desiredDirection > 0 Then
+                Motor.TrimUp(0, desiredSpeed)
+                currentDirection = 1
+                currentMotorSpeed = desiredSpeed
+                FMenu.lbl_AP_Status.Text = $"↑ CONTINUO (speed: {desiredSpeed})"
+            ElseIf desiredDirection < 0 Then
+                Motor.TrimDown(0, desiredSpeed)
+                currentDirection = -1
+                currentMotorSpeed = desiredSpeed
+                FMenu.lbl_AP_Status.Text = $"↓ CONTINUO (speed: {desiredSpeed})"
             Else
-                Motor.TrimDown(Math.Abs(finalSteps), MOTOR_SPEED)
+                Motor.DetenerMotor()
+                currentDirection = 0
+                currentMotorSpeed = 0
+                FMenu.lbl_AP_Status.Text = "HOLD"
             End If
         End If
 
-        ' Actualizar estado para próximo ciclo
+        ' Actualizar estado
         previousVS = currentVS
         previousError = errorVS
         previousTime = currentTime
     End Sub
 
     Private Function DetectAeroSaturation(currentError As Double, currentVS As Double) As Boolean
-        ' Si el error mantiene el mismo signo y magnitud significativa
-        ' pero el VS no está cambiando hacia el target, hay saturación
         If Math.Sign(currentError) = Math.Sign(previousError) And
            Math.Abs(currentError) > deadband * 2 Then
 
-            ' Check si VS está cambiando en la dirección correcta
             Dim vsChange As Double = currentVS - previousVS
             Dim expectedDirection As Double = Math.Sign(currentError)
 
-            ' Si no hay cambio significativo o va en dirección contraria
             If Math.Abs(vsChange) < 20 Or Math.Sign(vsChange) <> expectedDirection Then
                 saturationCounter += 1
             Else
@@ -244,6 +258,9 @@ Public Class PIDController
         saturationCounter = 0
         previousError = 0
         previousTime = DateTime.Now
+        currentDirection = 0
+        currentMotorSpeed = 0
+        Motor.DetenerMotor()
     End Sub
 
     Public Function GetControllerState() As ControllerState
@@ -251,6 +268,8 @@ Public Class PIDController
             .IntegralValue = integralAccumulated,
             .SaturationCounter = saturationCounter,
             .LastError = previousError,
+            .CurrentDirection = currentDirection,
+            .CurrentMotorSpeed = currentMotorSpeed,
             .Kp = Me.Kp,
             .Ki = Me.Ki,
             .Kd = Me.Kd
@@ -258,21 +277,21 @@ Public Class PIDController
     End Function
 End Class
 
-' === ENUMERACIONES Y ESTRUCTURAS ===
-
 Public Enum AircraftProfile
-    LightSingleEngine ' Cessna 172, Piper, etc
-    LightTwinEngine ' Baron, Seminole, etc
-    RegionalTurboprop ' Dash-8, ATR, etc
-    CommercialJetSmall ' A320, 737, etc
-    CommercialJetLarge ' 777, A350, etc
-    Fighter ' F-16, F-18, etc
+    LightSingleEngine
+    LightTwinEngine
+    RegionalTurboprop
+    CommercialJetSmall
+    CommercialJetLarge
+    Fighter
 End Enum
 
 Public Structure ControllerState
     Public IntegralValue As Double
     Public SaturationCounter As Integer
     Public LastError As Double
+    Public CurrentDirection As Integer
+    Public CurrentMotorSpeed As Integer
     Public Kp As Double
     Public Ki As Double
     Public Kd As Double

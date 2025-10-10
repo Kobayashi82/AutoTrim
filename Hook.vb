@@ -20,8 +20,8 @@
             Dim Input As Global.FSUIPC.UserInputServices = Global.FSUIPC.FSUIPCConnection.UserInputServices
 
             ' Registrar botones del yoke (ajusta joystick y números de botón según tu hardware)
-            Input.AddJoystickButtonPress("TrimUp", 6, 4, Global.FSUIPC.StateChange.Both)
-            Input.AddJoystickButtonPress("TrimDown", 6, 5, Global.FSUIPC.StateChange.Both)
+            Input.AddJoystickButtonPress("TrimUp", 1, 4, Global.FSUIPC.StateChange.Both)
+            Input.AddJoystickButtonPress("TrimDown", 1, 5, Global.FSUIPC.StateChange.Both)
 
             ' Registrar el evento
             AddHandler Input.ButtonPressed, AddressOf Input_ButtonPressed
@@ -49,17 +49,19 @@
 
             Dim motor As MotorController = fmenu.Motor
 
+            fmenu.lblEstado.Text = "Botón: " & e.ID & " Estado: " & e.ButtonState.ToString()
+
             Select Case e.ID
                 Case "TrimUp"
                     If e.ButtonState Then
-                        motor.TrimUp(0, 100) ' Velocidad por defecto
+                        motor.TrimUp(0, 30) ' Velocidad por defecto
                     Else
                         motor.DetenerMotor()
                     End If
 
                 Case "TrimDown"
                     If e.ButtonState Then
-                        motor.TrimDown(0, 100) ' Velocidad por defecto
+                        motor.TrimDown(0, 30) ' Velocidad por defecto
                     Else
                         motor.DetenerMotor()
                     End If
