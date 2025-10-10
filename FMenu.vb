@@ -8,21 +8,18 @@ Public Class FMenu
     Private Config As ConfigManager
     Private WithEvents FSUIPCMgr As FSUIPC
     Private WithEvents Hook As New Hook()
+    Public WithEvents Motor As MotorController
 
-    Dim PIDController1 As PIDController
-    Dim PIDController2 As PIDController2
-
-    Private WithEvents PIDTimer As New Timer With {.Enabled = False}
-    Private ComplexPIDCtrl As ComplexPIDController
+    Private PIDCtr As New PIDController(Motor, FSUIPCMgr)
+    Private WithEvents PIDTimer As New Timer With {.Enabled = False, .Interval = 200}
 
     Dim MSFS_VerticalSpeed As Double
     Dim Final_VerticalSpeed As Double
+    Dim Target_VS As Double
     Dim TrimFinal As Short
 
     Dim Mode As String
     Dim Iniciado As Boolean
-
-    Public WithEvents Motor As MotorController
 
 #End Region
 
@@ -35,7 +32,6 @@ Public Class FMenu
         FSUIPCMgr = New FSUIPC(Config)
 
         ' Configurar el timer PID
-        PIDController1 = New PIDController(Config.PID_Kp, Config.PID_Ki, Config.PID_Kd)
         PIDTimer.Interval = Config.PID_UpdateRate
 
         WindowState = If(Config.Start_Minimized = "true", FormWindowState.Minimized, FormWindowState.Normal)
@@ -131,24 +127,6 @@ Public Class FMenu
 
 #End Region
 
-#Region " Button1 "
-
-    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
-        If Not FSUIPCMgr.IsConnected Then Exit Sub
-
-        If (Iniciado = False) Then
-            Iniciado = True
-            Button1.Text = If(TTexto.Text = "0", "Trim-Zero ON", "Trim-Auto ON")
-            StartControl()
-        Else
-            Iniciado = False
-            Button1.Text = If(TTexto.Text = "0", "Trim-Zero OFF", "Trim-Auto OFF")
-            StopControl()
-        End If
-    End Sub
-
-#End Region
-
 #End Region
 
 #Region " FSUIPC "
@@ -160,8 +138,8 @@ Public Class FMenu
         Else
             PConection.Image = My.Resources.Red
             Iniciado = False
-            StopControl()
-            Button1.Text = Button1.Text.Replace("ON", "OFF")
+            PIDTimer.Stop()
+            lbl_AP_Status.Text = "AP OFF"
             Hook.UnregisterKeyPresses()
         End If
     End Sub
@@ -176,77 +154,50 @@ Public Class FMenu
 
 #Region " Hook "
 
-#Region " Set Trim Zero "
+#Region " AP ON "
 
-    Public Sub SetTrimZero()
+    Private Sub AP_ON(sender As Object, e As EventArgs) Handles Hook.AP_ON, btn_AP_Level.MouseClick, btn_AP_Current.Click, btn_AP_Toggle.Click
         If (Not FSUIPCMgr.IsConnected) Then Return
 
-        Mode = "TrimZero"
-        Final_VerticalSpeed = 0
-        TTexto.Text = "0"
-        'PIDController2.SetPoint = Final_VerticalSpeed
-        Button1.Text = "Trim-Zero ON"
-        If (Iniciado = False) Then
-            Iniciado = True
-            StartControl()
+        If TypeOf sender Is Button Then
+            Dim btn As Button = DirectCast(sender, Button)
+            If btn Is btn_AP_Level Then
+                Target_VS = 0
+            ElseIf btn Is btn_AP_Current Then
+                Target_VS = MSFS_VerticalSpeed
+            ElseIf btn Is btn_AP_Toggle Then
+                If (Iniciado) Then
+                    Iniciado = False
+                    PIDTimer.Stop()
+                    lbl_AP_Status.Text = "AP OFF"
+                    Return
+                End If
+            End If
+
+        ElseIf TypeOf sender Is String Then
+            Dim action As String = CStr(sender)
+            Select Case action
+                Case "AP_Level"
+                    Target_VS = 0
+                Case "AP_Current"
+                    Target_VS = MSFS_VerticalSpeed
+                Case "AP_Toggle"
+                    If (Iniciado) Then
+                        Iniciado = False
+                        PIDTimer.Stop()
+                        lbl_AP_Status.Text = "AP OFF"
+                        Return
+                    End If
+            End Select
         End If
+
+        TTexto.Text = Math.Round(Target_VS).ToString()
+        If (Iniciado = False) Then StartControl()
     End Sub
 
 #End Region
 
-#Region " Set Trim Auto "
-
-    Public Sub SetTrimAuto()
-        If (Not FSUIPCMgr.IsConnected) Then Return
-
-        Mode = "TrimAuto"
-        Final_VerticalSpeed = MSFS_VerticalSpeed
-        TTexto.Text = Math.Round(Final_VerticalSpeed).ToString()
-        'PIDController2.SetPoint = Final_VerticalSpeed
-        Button1.Text = "Trim-Auto ON"
-        If (Iniciado = False) Then
-            Iniciado = True
-            StartControl()
-        End If
-    End Sub
-
-#End Region
-
-#Region " Stop Trim "
-
-    Public Sub StopTrim()
-        Iniciado = False
-        StopControl()
-        Button1.Text = Button1.Text.Replace("ON", "OFF")
-    End Sub
-
-#End Region
-
-#Region " Trim Zero "
-
-    Private Sub Hook_TrimZero() Handles Hook.TrimZero
-        If (Mode = "TrimZero" And Iniciado = True) Then
-            StopTrim()
-        Else
-            SetTrimZero()
-        End If
-    End Sub
-
-#End Region
-
-#Region " Trim Auto "
-
-    Private Sub Hook_TrimAuto() Handles Hook.TrimAuto
-        If (Mode = "TrimAuto" And Iniciado = True) Then
-            StopTrim()
-        Else
-            SetTrimAuto()
-        End If
-    End Sub
-
-#End Region
-
-#Region " Trim Zero "
+#Region " Trim Up "
 
     Private Sub Hook_TrimUp() Handles Hook.TrimUp
         Motor.TrimUp(0, trackVelocidad.Value)
@@ -254,7 +205,7 @@ Public Class FMenu
 
 #End Region
 
-#Region " Trim Auto "
+#Region " Trim Down "
 
     Private Sub Hook_TrimDown() Handles Hook.TrimDown
         Motor.TrimDown(0, trackVelocidad.Value)
@@ -269,21 +220,15 @@ Public Class FMenu
 #Region " Start "
 
     Private Sub StartControl()
-        If Not FSUIPCMgr.IsConnected Then Return
+        If (Not FSUIPCMgr.IsConnected) Then Return
 
-        Dim velocidadDeseada As Double = TTexto.Text
-        ComplexPIDCtrl = New ComplexPIDController(velocidadDeseada, Config.PID_Kp, Config.PID_Ki, Config.PID_Kd)
+        Iniciado = True
+        lbl_AP_Status.Text = "AP ON"
+
+        PIDCtr.LoadProfile(AircraftProfile.LightSingleEngine)
+        PIDCtr.ResetController()
 
         PIDTimer.Start()
-    End Sub
-
-#End Region
-
-#Region " Stop "
-
-    Private Sub StopControl()
-        PIDTimer.Stop()
-        ComplexPIDCtrl = Nothing
     End Sub
 
 #End Region
@@ -291,35 +236,20 @@ Public Class FMenu
 #Region " Timer "
 
     Private Sub PIDTimer_Tick(sender As Object, e As EventArgs) Handles PIDTimer.Tick
-        If (Not Iniciado OrElse Not FSUIPCMgr.IsConnected OrElse ComplexPIDCtrl Is Nothing) Then
-            StopControl()
+        If (Not Iniciado OrElse Not FSUIPCMgr.IsConnected) Then
+            Iniciado = False
+            PIDTimer.Stop()
+            lbl_AP_Status.Text = "AP OFF"
             Return
         End If
 
         Try
-            ' Usar la velocidad vertical actual que ya está siendo actualizada por el evento DataUpdated
-            Dim velocidadVerticalActual As Double = MSFS_VerticalSpeed
-
-            ' Calcular la nueva salida del controlador PID y ajustar el trim
-            Dim newTrimValue = FSUIPCMgr.TrimValue + ComplexPIDCtrl.Compute(velocidadVerticalActual)
-
-            If (Double.IsNaN(newTrimValue) OrElse Double.IsInfinity(newTrimValue)) Then
-                ' Lógica de manejo de errores, como registro o alerta
-                Return
-            End If
-
-            If (newTrimValue > FSUIPCMgr.upperLimit) Then
-                newTrimValue = FSUIPCMgr.upperLimit
-            ElseIf (newTrimValue < FSUIPCMgr.lowerLimit) Then
-                newTrimValue = FSUIPCMgr.lowerLimit
-            End If
-
-            FSUIPCMgr.SetTrim(CShort(newTrimValue))
-
-        Catch
+            PIDCtr.Update(Target_VS)
+        Catch ex As Exception
+            MsgBox(ex.Message, MsgBoxStyle.Critical, "Error in PID Controller")
             Iniciado = False
-            StopControl()
-            Button1.Text = Button1.Text.Replace("ON", "OFF")
+            PIDTimer.Stop()
+            lbl_AP_Status.Text = "AP OFF2"
         End Try
     End Sub
 
@@ -405,6 +335,10 @@ Public Class FMenu
     End Sub
 
     Private Sub btnTrimUpContinuous_Click_1(sender As Object, e As EventArgs)
+
+    End Sub
+
+    Private Sub btn_AP_Level_Click(sender As Object, e As EventArgs) Handles btn_AP_Level.Click
 
     End Sub
 

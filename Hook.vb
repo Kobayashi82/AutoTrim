@@ -2,8 +2,7 @@
 
 #Region " Variables "
 
-    Public Event TrimZero()
-    Public Event TrimAuto()
+    Public Event AP_ON(sender As Object, e As EventArgs)
     Public Event TrimUp()
     Public Event TrimDown()
 
@@ -90,8 +89,9 @@
         Try
             Dim Input As Global.FSUIPC.UserInputServices = Global.FSUIPC.FSUIPCConnection.UserInputServices
 
-            Input.AddKeyPress("TrimZero", Global.FSUIPC.ModifierKeys.Ctrl, Keys.O, True)
-            Input.AddKeyPress("TrimAuto", Global.FSUIPC.ModifierKeys.Shift, Keys.O, True)
+            Input.AddKeyPress("AP_Level", Global.FSUIPC.ModifierKeys.Shift, Keys.O, True)
+            Input.AddKeyPress("AP_Current", Global.FSUIPC.ModifierKeys.Ctrl, Keys.O, True)
+            Input.AddKeyPress("AP_Toggle", Global.FSUIPC.ModifierKeys.Ctrl, Keys.P, True)
             Input.AddKeyPress("TrimUp", Global.FSUIPC.ModifierKeys.Ctrl, Keys.T, True)
             Input.AddKeyPress("TrimDown", Global.FSUIPC.ModifierKeys.Shift, Keys.T, True)
 
@@ -117,19 +117,15 @@
             RemoveHandler Input.ButtonPressed, AddressOf Input_ButtonPressed
 
             ' Remover teclas
-            Input.RemoveKeyPress("TrimZero")
-            Input.RemoveKeyPress("TrimAuto")
+            Input.RemoveKeyPress("AP_Level")
+            Input.RemoveKeyPress("AP_Current")
+            Input.RemoveKeyPress("AP_Toggle")
             Input.RemoveKeyPress("TrimUp")
             Input.RemoveKeyPress("TrimDown")
 
             ' Detener timer
             timerMain.Stop()
-
-            MsgBox("Joystick y teclas desregistrados correctamente")
-
-        Catch ex As Exception
-            MsgBox("Error unregistering: " & ex.Message)
-        End Try
+        Catch : End Try
     End Sub
 
 #End Region
@@ -138,10 +134,12 @@
 
     Private Sub Input_KeyPressed(sender As Object, e As Global.FSUIPC.UserInputKeyEventArgs)
         Select Case (e.ID)
-            Case "TrimZero"
-                RaiseEvent TrimZero()
-            Case "TrimAuto"
-                RaiseEvent TrimAuto()
+            Case "AP_Level"
+                RaiseEvent AP_ON("Level", Nothing)
+            Case "AP_Current"
+                RaiseEvent AP_ON("Current", Nothing)
+            Case "AP_Toggle"
+                RaiseEvent AP_ON("Toggle", Nothing)
             Case "TrimUp"
                 RaiseEvent TrimUp()
             Case "TrimDown"

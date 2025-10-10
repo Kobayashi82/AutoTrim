@@ -48,6 +48,10 @@ Partial Class FMenu
         Me.btnTrimDownContinuous = New AutoTrim.BonfireButton()
         Me.btnTrimUpContinuous = New AutoTrim.BonfireButton()
         Me.btnConectar = New AutoTrim.BonfireButton()
+        Me.btn_AP_Level = New System.Windows.Forms.Button()
+        Me.btn_AP_Current = New System.Windows.Forms.Button()
+        Me.btn_AP_Toggle = New System.Windows.Forms.Button()
+        Me.lbl_AP_Status = New System.Windows.Forms.Label()
         CType(Me.PConection, System.ComponentModel.ISupportInitialize).BeginInit()
         CType(Me.trackVelocidad, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
@@ -342,6 +346,45 @@ Partial Class FMenu
         Me.btnConectar.TabIndex = 87
         Me.btnConectar.Text = "Connect"
         '
+        'btn_AP_Level
+        '
+        Me.btn_AP_Level.Location = New System.Drawing.Point(12, 210)
+        Me.btn_AP_Level.Name = "btn_AP_Level"
+        Me.btn_AP_Level.Size = New System.Drawing.Size(65, 36)
+        Me.btn_AP_Level.TabIndex = 86
+        Me.btn_AP_Level.Text = "AP Level"
+        Me.btn_AP_Level.UseVisualStyleBackColor = True
+        '
+        'btn_AP_Current
+        '
+        Me.btn_AP_Current.Location = New System.Drawing.Point(83, 210)
+        Me.btn_AP_Current.Name = "btn_AP_Current"
+        Me.btn_AP_Current.Size = New System.Drawing.Size(65, 36)
+        Me.btn_AP_Current.TabIndex = 86
+        Me.btn_AP_Current.Text = "AP Current"
+        Me.btn_AP_Current.UseVisualStyleBackColor = True
+        '
+        'btn_AP_Toggle
+        '
+        Me.btn_AP_Toggle.Location = New System.Drawing.Point(154, 210)
+        Me.btn_AP_Toggle.Name = "btn_AP_Toggle"
+        Me.btn_AP_Toggle.Size = New System.Drawing.Size(65, 36)
+        Me.btn_AP_Toggle.TabIndex = 86
+        Me.btn_AP_Toggle.Text = "AP Toggle"
+        Me.btn_AP_Toggle.UseVisualStyleBackColor = True
+        '
+        'lbl_AP_Status
+        '
+        Me.lbl_AP_Status.AutoSize = True
+        Me.lbl_AP_Status.Font = New System.Drawing.Font("Arial", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.lbl_AP_Status.ForeColor = System.Drawing.Color.MediumTurquoise
+        Me.lbl_AP_Status.Location = New System.Drawing.Point(88, 251)
+        Me.lbl_AP_Status.Name = "lbl_AP_Status"
+        Me.lbl_AP_Status.Size = New System.Drawing.Size(55, 16)
+        Me.lbl_AP_Status.TabIndex = 83
+        Me.lbl_AP_Status.Text = "AP OFF"
+        Me.lbl_AP_Status.TextAlign = System.Drawing.ContentAlignment.MiddleRight
+        '
         'FMenu
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -360,6 +403,9 @@ Partial Class FMenu
         Me.Controls.Add(Me.btnTrimDownContinuous)
         Me.Controls.Add(Me.btnTrimUpContinuous)
         Me.Controls.Add(Me.btnConectar)
+        Me.Controls.Add(Me.btn_AP_Toggle)
+        Me.Controls.Add(Me.btn_AP_Current)
+        Me.Controls.Add(Me.btn_AP_Level)
         Me.Controls.Add(Me.Button1)
         Me.Controls.Add(Me.PConection)
         Me.Controls.Add(Me.TDiff)
@@ -369,6 +415,7 @@ Partial Class FMenu
         Me.Controls.Add(Me.Texto)
         Me.Controls.Add(Me.LDiff)
         Me.Controls.Add(Me.Label3)
+        Me.Controls.Add(Me.lbl_AP_Status)
         Me.Controls.Add(Me.LSFuel)
         Me.Controls.Add(Me.TTexto)
         Me.Controls.Add(Me.HTexto)
@@ -413,4 +460,8 @@ Partial Class FMenu
     Friend WithEvents txtControl As TextBox
     Friend WithEvents btnTrimDown As BonfireButton
     Friend WithEvents txtSpeed As TextBox
+    Friend WithEvents btn_AP_Level As Button
+    Friend WithEvents btn_AP_Current As Button
+    Friend WithEvents btn_AP_Toggle As Button
+    Friend WithEvents lbl_AP_Status As Label
 End Class

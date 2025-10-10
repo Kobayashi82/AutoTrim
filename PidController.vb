@@ -1,202 +1,279 @@
 ﻿
-Public Class ComplexPIDController
-
-    Private PIDVelocity As PIDControllerS
-    Private PIDRateOfChange As PIDControllerS
-    Private _velocities As New Queue(Of Double)(2)
-    Private _setPoint As Double
-
-    Public Sub New(velocitySetPoint As Double)
-        _setPoint = velocitySetPoint
-        ' Usar valores por defecto si no se pasan parámetros
-        PIDVelocity = New PIDControllerS(0.02, 0.00005, 3)
-        PIDRateOfChange = New PIDControllerS(0, 0, 0.000000)
-        PIDVelocity.SetPoint = _setPoint
-        PIDRateOfChange.SetPoint = 0
-    End Sub
-
-    Public Sub New(velocitySetPoint As Double, kp As Double, ki As Double, kd As Double)
-        _setPoint = velocitySetPoint
-        ' Usar valores de configuración
-        PIDVelocity = New PIDControllerS(kp, ki, kd)
-        PIDRateOfChange = New PIDControllerS(0, 0, 0.000000)
-        PIDVelocity.SetPoint = _setPoint
-        PIDRateOfChange.SetPoint = 0
-    End Sub
-
-    Public Function Compute(velocidadVerticalActual As Double) As Double
-        If (_velocities.Count >= 2) Then _velocities.Dequeue()
-        _velocities.Enqueue(velocidadVerticalActual)
-
-        If (_velocities.Count < 2) Then Return (0)
-
-        Dim velocitiesArray = _velocities.ToArray()
-        Dim velocityError = velocitiesArray(1) - velocitiesArray(0)
-
-        ' Primero controlamos la velocidad vertical, acercándonos a la velocidad deseada
-        Dim velocityControlOutput = PIDVelocity.Compute(velocidadVerticalActual)
-
-        ' Luego controlamos la tasa de cambio, asegurándonos de que sea cero en la velocidad deseada
-        Dim rateOfChangeControlOutput = PIDRateOfChange.Compute(velocityError)
-
-        ' Ponderamos los dos controladores según la proximidad a la velocidad deseada
-        Dim proximityToSetPoint As Double
-        Dim safeSetPoint = If(_setPoint = 0, 1, _setPoint)
-
-        proximityToSetPoint = Math.Abs(velocidadVerticalActual - safeSetPoint) / safeSetPoint
-
-        Dim output = proximityToSetPoint * velocityControlOutput + (1 - proximityToSetPoint) * rateOfChangeControlOutput
-
-        Return (output)
-    End Function
-
-End Class
-
-Public Class PIDControllerS
-
-    Private _Kp As Double
-    Private _Ki As Double
-    Private _Kd As Double
-    Private _currentError As Double
-    Private _previousError As Double
-    Private _integral As Double
-    Private _derivative As Double
-    Private _setPoint As Double
-
-    Public Sub New(Kp As Double, Ki As Double, Kd As Double)
-        _Kp = Kp
-        _Ki = Ki
-        _Kd = Kd
-    End Sub
-
-    Public Property SetPoint As Double
-        Get
-            Return (_setPoint)
-        End Get
-        Set(value As Double)
-            _setPoint = value
-        End Set
-    End Property
-
-    Public Function Compute(actualValue As Double) As Double
-        _currentError = _setPoint - actualValue
-        _integral += _currentError
-        _derivative = _currentError - _previousError
-        Dim output = _Kp * _currentError + _Ki * _integral + _Kd * _derivative
-        _previousError = _currentError
-
-        Return (output)
-    End Function
-
-End Class
-
-Public Class PIDController2
-
-    Private _Kp As Double
-    Private _Ki As Double
-    Private _Kd As Double
-    Private _setPoint As Double
-    Private _error As Double
-    Private _previousError As Double
-    Private _integral As Double
-    Private _derivative As Double
-    Private _velocities As New Queue(Of Double)(2)
-
-    Public Property SetPoint As Double
-        Get
-            Return (_setPoint)
-        End Get
-        Set(value As Double)
-            _setPoint = value
-        End Set
-    End Property
-
-    Public Sub New(Kp As Double, Ki As Double, Kd As Double)
-        _Kp = Kp : _Ki = Ki : _Kd = Kd
-    End Sub
-
-    Public Function Compute(velocidadVerticalActual As Double) As Double
-        If (_velocities.Count >= 2) Then _velocities.Dequeue()
-        _velocities.Enqueue(velocidadVerticalActual)
-
-        If (_velocities.Count < 2) Then Return (0)
-
-        Dim velocitiesArray = _velocities.ToArray()
-        _error = (velocitiesArray(1) - velocitiesArray(0)) + 0.01 * (velocidadVerticalActual - _setPoint)
-
-        _integral += _error
-        _derivative = _error - _previousError
-
-        Dim output = _Kp * _error + _Ki * _integral + _Kd * _derivative
-        _previousError = _error
-
-        Return (output)
-    End Function
-End Class
+Imports System.Threading
 
 Public Class PIDController
+    ' Parámetros del PID
+    Private Kp As Double
+    Private Ki As Double
+    Private Kd As Double
 
-    Public Property SetPoint As Double
-    Public Property ProcessVariable As Double
-    Public Property Kp As Double
-    Public Property Ki As Double
-    Public Property Kd As Double
-    Public popo As Boolean
+    ' Estado interno del PID
+    Private integralAccumulated As Double = 0
+    Private previousVS As Double = 0
+    Private previousTime As DateTime = DateTime.Now
 
-    Private _lastProportional As Double
-    Private _integral As Double
+    ' Configuración del controlador
+    Private referenceSpeed As Double ' Velocidad de referencia en knots
+    Private maxStepsPerCycle As Integer
+    Private deadband As Double ' FPM
+    Private trimMargin As Double ' Margen para límites de trim
+    Private speedScalingExponent As Double = 1.5 ' Exponente para escalar por velocidad
 
-    Private _errorList As New List(Of Double)
-    Private _maxErrorListSize As Integer = 50
+    ' Límites del simulador
+    Private ReadOnly MIN_TRIM As Double = -1600
+    Private ReadOnly MAX_TRIM As Double = 1600
+    Private ReadOnly MOTOR_SPEED As Integer = 30
 
-    Public Sub New(Kp As Double, Ki As Double, Kd As Double)
-        Me.Kp = Kp : Me.Ki = Ki : Me.Kd = Kd
+    ' Anti-windup - detección de saturación
+    Private saturationCounter As Integer = 0
+    Private ReadOnly SATURATION_THRESHOLD As Integer = 5 ' Ciclos para detectar saturación
+    Private previousError As Double = 0
+
+    ' Referencias externas
+    Private Motor As Object
+    Private FSUIPCMgr As Object
+
+    Public Sub New(motorInstance As Object, fsuipcInstance As Object)
+        Motor = motorInstance
+        FSUIPCMgr = fsuipcInstance
+
+        LoadDefaultProfile()
     End Sub
 
-    Public ReadOnly Property ControlOutput As Double
-        Get
-            Dim proportional = SetPoint - ProcessVariable : _integral += proportional
-            Dim derivative = proportional - _lastProportional : _lastProportional = proportional
+    Public Sub LoadProfile(profileType As AircraftProfile)
+        Select Case profileType
+            Case AircraftProfile.LightSingleEngine
+                Kp = 0.08
+                Ki = 0.01
+                Kd = 0.15
+                referenceSpeed = 110
+                maxStepsPerCycle = 40
+                deadband = 50
+                trimMargin = 150
 
-            If (popo = False) Then
+            Case AircraftProfile.LightTwinEngine
+                Kp = 0.06
+                Ki = 0.008
+                Kd = 0.12
+                referenceSpeed = 150
+                maxStepsPerCycle = 50
+                deadband = 60
+                trimMargin = 150
 
-                ' Almacenar error
-                _errorList.Add(Math.Abs(proportional))
-                ' Limitar tamaño de lista de error
-                If (_errorList.Count > _maxErrorListSize) Then _errorList.RemoveAt(0)
+            Case AircraftProfile.RegionalTurboprop
+                Kp = 0.05
+                Ki = 0.006
+                Kd = 0.1
+                referenceSpeed = 200
+                maxStepsPerCycle = 60
+                deadband = 70
+                trimMargin = 200
 
-                ' Ajustar Kd en función de la desviación estándar de los errores recientes
-                Dim stdDev As Double = CalculateStdDev(_errorList)
-                If (Not Double.IsNaN(stdDev)) Then
-                    Dim deltaKd As Double = stdDev - Kd
-                    Dim maxDeltaKd As Double = Kd * 0.01 ' permitir un cambio máximo del 0.1% por ciclo (0.1 = 10%)
-                    If (Math.Abs(deltaKd) > maxDeltaKd) Then deltaKd = Math.Sign(deltaKd) * maxDeltaKd ' limitar el cambio a maxDeltaKd
+            Case AircraftProfile.CommercialJetSmall
+                Kp = 0.04
+                Ki = 0.005
+                Kd = 0.08
+                referenceSpeed = 250
+                maxStepsPerCycle = 70
+                deadband = 80
+                trimMargin = 200
 
-                    Kd += deltaKd
+            Case AircraftProfile.CommercialJetLarge
+                Kp = 0.03
+                Ki = 0.004
+                Kd = 0.06
+                referenceSpeed = 280
+                maxStepsPerCycle = 80
+                deadband = 100
+                trimMargin = 250
 
-                    ' Limitar Kd a un rango específico
-                    Dim lowerLimit As Double = 0.01 ' define tu límite inferior
-                    Dim upperLimit As Double = 8 ' define tu límite superior
-                    If (Kd < lowerLimit) Then Kd = lowerLimit
-                    If (Kd > upperLimit) Then Kd = upperLimit
-                End If
+            Case AircraftProfile.Fighter
+                Kp = 0.1
+                Ki = 0.012
+                Kd = 0.2
+                referenceSpeed = 300
+                maxStepsPerCycle = 100
+                deadband = 100
+                trimMargin = 200
+        End Select
 
-            End If
+        ' Resetear estado al cambiar perfil
+        ResetController()
+    End Sub
 
-            Return (Kp * proportional + Ki * _integral + Kd * derivative)
-        End Get
-    End Property
+    Private Sub LoadDefaultProfile()
+        LoadProfile(AircraftProfile.CommercialJetSmall)
+    End Sub
 
-    Private Function CalculateStdDev(values As List(Of Double)) As Double
-        Dim ret As Double = 0
+    Public Sub SetCustomParameters(kpValue As Double, kiValue As Double, kdValue As Double,
+                                   refSpeed As Double, maxSteps As Integer,
+                                   deadbandFpm As Double, margin As Double)
+        Kp = kpValue
+        Ki = kiValue
+        Kd = kdValue
+        referenceSpeed = refSpeed
+        maxStepsPerCycle = maxSteps
+        deadband = deadbandFpm
+        trimMargin = margin
+    End Sub
 
-        If (values.Count > 1) Then
-            Dim avg As Double = values.Average()
-            Dim sum As Double = values.Sum(Function(d) Math.Pow(d - avg, 2))
-            If (sum > 0) Then ret = Math.Sqrt((sum) / (values.Count - 1))
+    Public Sub Update(targetVS As Double)
+        ' Leer valores del simulador
+        Dim currentVS As Double = FSUIPCMgr.VerticalSpeed ' Asume que está en FPM
+        Dim currentTrim As Double = FSUIPCMgr.ElevatorTrim ' Valor entre -1600 y 1600
+        Dim currentSpeed As Double = FSUIPCMgr.IndicatedAirspeed ' En knots
+
+        ' Calcular tiempo transcurrido
+        Dim currentTime As DateTime = DateTime.Now
+        Dim deltaTime As Double = (currentTime - previousTime).TotalSeconds
+
+        ' Evitar divisiones por cero o valores anormales
+        If deltaTime <= 0 Or deltaTime > 1.0 Then
+            previousTime = currentTime
+            Return
         End If
 
-        Return (ret)
+        ' Calcular error
+        Dim errorVS As Double = targetVS - currentVS
+
+        ' Deadband - no actuar si estamos muy cerca del target
+        If Math.Abs(errorVS) < deadband Then
+            ' Opcionalmente congelar integrador en deadband
+            ' integralAccumulated *= 0.9 ' Decaimiento suave
+            previousTime = currentTime
+            previousVS = currentVS
+            Return
+        End If
+
+        ' === TÉRMINO PROPORCIONAL ===
+        Dim pTerm As Double = Kp * errorVS
+
+        ' === TÉRMINO INTEGRAL con Anti-Windup ===
+        ' Solo acumular si no estamos en los límites o saturados
+        Dim canIntegrate As Boolean = True
+
+        ' Check límites del simulador
+        If (currentTrim >= MAX_TRIM - trimMargin And pTerm > 0) Or
+           (currentTrim <= MIN_TRIM + trimMargin And pTerm < 0) Then
+            canIntegrate = False
+            ' Reducir integrador existente (back-calculation)
+            integralAccumulated *= 0.8
+        End If
+
+        ' Detectar saturación aerodinámica
+        If DetectAeroSaturation(errorVS, currentVS) Then
+            canIntegrate = False
+            integralAccumulated *= 0.9
+        End If
+
+        If canIntegrate Then
+            integralAccumulated += errorVS * deltaTime
+
+            ' Limitar el integrador para evitar windup excesivo
+            Dim maxIntegral As Double = 5000 ' Ajustar según necesidad
+            integralAccumulated = Math.Max(-maxIntegral, Math.Min(maxIntegral, integralAccumulated))
+        End If
+
+        Dim iTerm As Double = Ki * integralAccumulated
+
+        ' === TÉRMINO DERIVATIVO ===
+        ' Calcular solo del VS, no del error (evita derivative kick)
+        Dim vsRate As Double = (currentVS - previousVS) / deltaTime
+        Dim dTerm As Double = -Kd * vsRate ' Negativo porque queremos frenar el cambio
+
+        ' === SALIDA BASE DEL PID ===
+        Dim pidOutput As Double = pTerm + iTerm + dTerm
+
+        ' === ESCALADO POR VELOCIDAD ===
+        Dim speedFactor As Double = 1.0
+        If currentSpeed > 10 Then ' Evitar división por cero en tierra
+            speedFactor = Math.Pow(referenceSpeed / currentSpeed, speedScalingExponent)
+        End If
+
+        Dim stepsToMove As Double = pidOutput * speedFactor
+
+        ' === RATE LIMITING ===
+        If Math.Abs(stepsToMove) > maxStepsPerCycle Then
+            stepsToMove = Math.Sign(stepsToMove) * maxStepsPerCycle
+        End If
+
+        ' Redondear a entero
+        Dim finalSteps As Integer = CInt(Math.Round(stepsToMove))
+
+        ' === ENVIAR COMANDO AL MOTOR ===
+        If finalSteps <> 0 Then
+            If finalSteps > 0 Then
+                Motor.TrimUp(Math.Abs(finalSteps), MOTOR_SPEED)
+            Else
+                Motor.TrimDown(Math.Abs(finalSteps), MOTOR_SPEED)
+            End If
+        End If
+
+        ' Actualizar estado para próximo ciclo
+        previousVS = currentVS
+        previousError = errorVS
+        previousTime = currentTime
+    End Sub
+
+    Private Function DetectAeroSaturation(currentError As Double, currentVS As Double) As Boolean
+        ' Si el error mantiene el mismo signo y magnitud significativa
+        ' pero el VS no está cambiando hacia el target, hay saturación
+        If Math.Sign(currentError) = Math.Sign(previousError) And
+           Math.Abs(currentError) > deadband * 2 Then
+
+            ' Check si VS está cambiando en la dirección correcta
+            Dim vsChange As Double = currentVS - previousVS
+            Dim expectedDirection As Double = Math.Sign(currentError)
+
+            ' Si no hay cambio significativo o va en dirección contraria
+            If Math.Abs(vsChange) < 20 Or Math.Sign(vsChange) <> expectedDirection Then
+                saturationCounter += 1
+            Else
+                saturationCounter = 0
+            End If
+        Else
+            saturationCounter = 0
+        End If
+
+        Return saturationCounter >= SATURATION_THRESHOLD
     End Function
 
+    Public Sub ResetController()
+        integralAccumulated = 0
+        previousVS = 0
+        saturationCounter = 0
+        previousError = 0
+        previousTime = DateTime.Now
+    End Sub
+
+    Public Function GetControllerState() As ControllerState
+        Return New ControllerState With {
+            .IntegralValue = integralAccumulated,
+            .SaturationCounter = saturationCounter,
+            .LastError = previousError,
+            .Kp = Me.Kp,
+            .Ki = Me.Ki,
+            .Kd = Me.Kd
+        }
+    End Function
 End Class
+
+' === ENUMERACIONES Y ESTRUCTURAS ===
+
+Public Enum AircraftProfile
+    LightSingleEngine ' Cessna 172, Piper, etc
+    LightTwinEngine ' Baron, Seminole, etc
+    RegionalTurboprop ' Dash-8, ATR, etc
+    CommercialJetSmall ' A320, 737, etc
+    CommercialJetLarge ' 777, A350, etc
+    Fighter ' F-16, F-18, etc
+End Enum
+
+Public Structure ControllerState
+    Public IntegralValue As Double
+    Public SaturationCounter As Integer
+    Public LastError As Double
+    Public Kp As Double
+    Public Ki As Double
+    Public Kd As Double
+End Structure
